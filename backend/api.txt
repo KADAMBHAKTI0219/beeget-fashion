@@ -1,0 +1,737 @@
+Authentication API Documentation
+==========================
+
+Base URL: /api/auth
+
+1. Register User
+--------------
+Endpoint: POST /register
+Description: Register a new user account
+
+Request Body:
+{
+    "name": "string",
+    "email": "string",
+    "password": "string"
+}
+
+Sample Request:
+{
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "password": "Test@123"
+}
+
+Response (201):
+{
+    "message": "User registered successfully",
+    "accessToken": "string",
+    "refreshToken": "string"
+}
+
+2. Login
+--------
+Endpoint: POST /login
+Description: Authenticate user and get tokens
+
+Request Body:
+{
+    "email": "string",
+    "password": "string"
+}
+
+Sample Request:
+{
+    "email": "john.doe@example.com",
+    "password": "Test@123"
+}
+
+Response (200):
+{
+    "success": true,
+    "accessToken": "string",
+    "refreshToken": "string"
+}
+
+
+Product API Documentation
+=======================
+
+Base URL: /api/products
+
+1. Create Product (Admin Only)
+----------------------------
+Endpoint: POST /
+Description: Create a new product (requires admin access)
+
+Headers: 
+  - Authorization: Bearer {token}
+
+Request Body:
+{
+  "title": "string",
+  "description": "string",
+  "images": ["string"],
+  "price": "number",
+  "salePrice": "number" (optional),
+  "categories": ["categoryId"],
+  "collections": ["collectionId"],
+  "tags": ["string"],
+  "inventoryCount": "number"
+}
+
+Sample Request:
+{
+  "title": "Blue Denim Jacket",
+  "description": "Classic blue denim jacket with brass buttons",
+  "images": ["https://example.com/image1.jpg", "https://example.com/image2.jpg"],
+  "price": 89.99,
+  "salePrice": 79.99,
+  "categories": ["categoryId1", "categoryId2"],
+  "collections": ["collectionId1"],
+  "tags": ["denim", "jacket", "casual"],
+  "inventoryCount": 100
+}
+
+Response (201):
+{
+  "success": true,
+  "data": {
+    "_id": "productId",
+    "title": "Blue Denim Jacket",
+    "slug": "blue-denim-jacket",
+    "description": "Classic blue denim jacket with brass buttons",
+    "images": ["https://example.com/image1.jpg", "https://example.com/image2.jpg"],
+    "price": 89.99,
+    "salePrice": 79.99,
+    "categories": ["categoryId1", "categoryId2"],
+    "collections": ["collectionId1"],
+    "tags": ["denim", "jacket", "casual"],
+    "inventoryCount": 100,
+    "createdAt": "2024-01-20T10:00:00.000Z",
+    "updatedAt": "2024-01-20T10:00:00.000Z"
+  }
+}
+
+2. Get All Products
+------------------
+Endpoint: GET /
+Description: Get list of products with filtering and pagination
+
+Query Parameters:
+- category: Filter by category ID
+- collection: Filter by collection ID
+- minPrice: Minimum price filter
+- maxPrice: Maximum price filter
+- search: Search in title and description
+- sort: Sort field (e.g., '-createdAt', 'price')
+- page: Page number (default: 1)
+- limit: Items per page (default: 10)
+
+Response (200):
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "productId",
+      "title": "Blue Denim Jacket",
+      "slug": "blue-denim-jacket",
+      "price": 89.99,
+      "salePrice": 79.99,
+      "images": ["https://example.com/image1.jpg"],
+      "inventoryCount": 100
+    }
+  ],
+  "pagination": {
+    "total": 100,
+    "page": 1,
+    "pages": 10
+  }
+}
+
+3. Get Single Product
+--------------------
+Endpoint: GET /:slug
+Description: Get detailed information about a specific product
+
+Response (200):
+{
+  "success": true,
+  "data": {
+    "_id": "productId",
+    "title": "Blue Denim Jacket",
+    "slug": "blue-denim-jacket",
+    "description": "Classic blue denim jacket with brass buttons",
+    "images": ["https://example.com/image1.jpg", "https://example.com/image2.jpg"],
+    "price": 89.99,
+    "salePrice": 79.99,
+    "categories": [{
+      "_id": "categoryId",
+      "name": "Jackets",
+      "slug": "jackets"
+    }],
+    "collections": [{
+      "_id": "collectionId",
+      "name": "Summer Collection",
+      "slug": "summer-collection"
+    }],
+    "tags": ["denim", "jacket", "casual"],
+    "inventoryCount": 100,
+    "createdAt": "2024-01-20T10:00:00.000Z",
+    "updatedAt": "2024-01-20T10:00:00.000Z"
+  }
+}
+
+4. Update Product (Admin Only)
+----------------------------
+Endpoint: PUT /:id
+Description: Update product information (requires admin access)
+
+Headers:
+  - Authorization: Bearer {token}
+
+Request Body: (all fields optional)
+{
+  "title": "string",
+  "description": "string",
+  "images": ["string"],
+  "price": "number",
+  "salePrice": "number",
+  "categories": ["categoryId"],
+  "collections": ["collectionId"],
+  "tags": ["string"],
+  "inventoryCount": "number"
+}
+
+Response (200):
+{
+  "success": true,
+  "data": {
+    "_id": "productId",
+    "title": "Updated Denim Jacket",
+    "slug": "updated-denim-jacket",
+    ...
+  }
+}
+
+5. Delete Product (Admin Only)
+----------------------------
+Endpoint: DELETE /:id
+Description: Delete a product (requires admin access)
+
+Headers:
+  - Authorization: Bearer {token}
+
+Response (200):
+{
+  "success": true,
+  "message": "Product deleted successfully"
+}
+
+Error Responses
+--------------
+400 Bad Request:
+{
+  "success": false,
+  "errors": [
+    {
+      "field": "title",
+      "message": "Title is required"
+    }
+  ]
+}
+
+401 Unauthorized:
+{
+  "success": false,
+  "error": "Access denied. Admin privileges required."
+}
+
+404 Not Found:
+{
+  "success": false,
+  "error": "Product not found"
+}
+
+
+Category API Documentation
+========================
+
+Base URL: /api/categories
+
+1. Create Category (Admin Only)
+----------------------------
+Endpoint: POST /
+Description: Create a new category (requires admin access)
+
+Headers: 
+  - Authorization: Bearer {token}
+
+Request Body:
+{
+  "name": "string",
+  "description": "string" (optional),
+  "image": "string" (optional),
+  "active": boolean (default: true),
+  "order": number (default: 0),
+  "parent": "categoryId" (optional)
+}
+
+Sample Request:
+{
+  "name": "Men's Clothing",
+  "description": "All clothing items for men",
+  "image": "https://example.com/mens-category.jpg",
+  "order": 1
+}
+
+Response (201):
+{
+  "success": true,
+  "data": {
+    "_id": "categoryId",
+    "name": "Men's Clothing",
+    "slug": "mens-clothing",
+    "description": "All clothing items for men",
+    "image": "https://example.com/mens-category.jpg",
+    "active": true,
+    "order": 1,
+    "parent": null,
+    "createdAt": "2024-01-20T10:00:00.000Z",
+    "updatedAt": "2024-01-20T10:00:00.000Z"
+  }
+}
+
+2. Get All Categories
+------------------
+Endpoint: GET /
+Description: Get hierarchical list of active categories
+
+Response (200):
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "categoryId1",
+      "name": "Men's Clothing",
+      "slug": "mens-clothing",
+      "description": "All clothing items for men",
+      "image": "https://example.com/mens-category.jpg",
+      "order": 1,
+      "children": [
+        {
+          "_id": "categoryId2",
+          "name": "T-Shirts",
+          "slug": "t-shirts",
+          "description": "Men's T-Shirts",
+          "image": "https://example.com/tshirts.jpg",
+          "order": 1
+        }
+      ]
+    }
+  ]
+}
+
+3. Get Single Category
+--------------------
+Endpoint: GET /:slug
+Description: Get detailed information about a specific category
+
+Response (200):
+{
+  "success": true,
+  "data": {
+    "_id": "categoryId",
+    "name": "Men's Clothing",
+    "slug": "mens-clothing",
+    "description": "All clothing items for men",
+    "image": "https://example.com/mens-category.jpg",
+    "active": true,
+    "order": 1,
+    "parent": null,
+    "createdAt": "2024-01-20T10:00:00.000Z",
+    "updatedAt": "2024-01-20T10:00:00.000Z"
+  }
+}
+
+4. Update Category (Admin Only)
+----------------------------
+Endpoint: PUT /:id
+Description: Update category information (requires admin access)
+
+Headers:
+  - Authorization: Bearer {token}
+
+Request Body: (all fields optional)
+{
+  "name": "string",
+  "description": "string",
+  "image": "string",
+  "active": boolean,
+  "order": number,
+  "parent": "categoryId"
+}
+
+Response (200):
+{
+  "success": true,
+  "data": {
+    "_id": "categoryId",
+    "name": "Updated Category Name",
+    "slug": "updated-category-name",
+    ...
+  }
+}
+
+5. Delete Category (Admin Only)
+----------------------------
+Endpoint: DELETE /:id
+Description: Delete a category (requires admin access)
+
+Headers:
+  - Authorization: Bearer {token}
+
+Response (200):
+{
+  "success": true,
+  "message": "Category deleted successfully"
+}
+
+Error Responses
+--------------
+400 Bad Request:
+{
+  "success": false,
+  "errors": [
+    {
+      "field": "name",
+      "message": "Name is required"
+    }
+  ]
+}
+
+400 Bad Request (Delete with Subcategories):
+{
+  "success": false,
+  "error": "Cannot delete category with subcategories. Please delete subcategories first."
+}
+
+401 Unauthorized:
+{
+  "success": false,
+  "error": "Access denied. Admin privileges required."
+}
+
+404 Not Found:
+{
+  "success": false,
+  "error": "Category not found"
+}
+
+
+Collection API Documentation
+=========================
+
+Base URL: /api/collections
+
+1. Create Collection (Admin Only)
+------------------------------
+Endpoint: POST /
+Description: Create a new collection (requires admin access)
+
+Headers: 
+  - Authorization: Bearer {token}
+
+Request Body:
+{
+  "name": "string",
+  "description": "string" (optional),
+  "image": "string" (optional),
+  "active": boolean (default: true),
+  "order": number (default: 0),
+  "startDate": "date" (default: current date),
+  "endDate": "date" (optional)
+}
+
+Sample Request:
+{
+  "name": "Summer Collection 2024",
+  "description": "Latest summer fashion trends",
+  "image": "https://example.com/summer-collection.jpg",
+  "order": 1,
+  "startDate": "2024-06-01T00:00:00.000Z",
+  "endDate": "2024-08-31T23:59:59.999Z"
+}
+
+Response (201):
+{
+  "success": true,
+  "data": {
+    "_id": "collectionId",
+    "name": "Summer Collection 2024",
+    "slug": "summer-collection-2024",
+    "description": "Latest summer fashion trends",
+    "image": "https://example.com/summer-collection.jpg",
+    "active": true,
+    "order": 1,
+    "startDate": "2024-06-01T00:00:00.000Z",
+    "endDate": "2024-08-31T23:59:59.999Z",
+    "createdAt": "2024-01-20T10:00:00.000Z",
+    "updatedAt": "2024-01-20T10:00:00.000Z"
+  }
+}
+
+2. Get All Collections
+-------------------
+Endpoint: GET /
+Description: Get list of active collections (not ended)
+
+Response (200):
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "collectionId1",
+      "name": "Summer Collection 2024",
+      "slug": "summer-collection-2024",
+      "description": "Latest summer fashion trends",
+      "image": "https://example.com/summer-collection.jpg",
+      "order": 1,
+      "startDate": "2024-06-01T00:00:00.000Z",
+      "endDate": "2024-08-31T23:59:59.999Z"
+    }
+  ]
+}
+
+3. Get Single Collection
+---------------------
+Endpoint: GET /:slug
+Description: Get detailed information about a specific collection
+
+Response (200):
+{
+  "success": true,
+  "data": {
+    "_id": "collectionId",
+    "name": "Summer Collection 2024",
+    "slug": "summer-collection-2024",
+    "description": "Latest summer fashion trends",
+    "image": "https://example.com/summer-collection.jpg",
+    "active": true,
+    "order": 1,
+    "startDate": "2024-06-01T00:00:00.000Z",
+    "endDate": "2024-08-31T23:59:59.999Z",
+    "createdAt": "2024-01-20T10:00:00.000Z",
+    "updatedAt": "2024-01-20T10:00:00.000Z"
+  }
+}
+
+4. Update Collection (Admin Only)
+-----------------------------
+Endpoint: PUT /:id
+Description: Update collection information (requires admin access)
+
+Headers:
+  - Authorization: Bearer {token}
+
+Request Body: (all fields optional)
+{
+  "name": "string",
+  "description": "string",
+  "image": "string",
+  "active": boolean,
+  "order": number,
+  "startDate": "date",
+  "endDate": "date"
+}
+
+Response (200):
+{
+  "success": true,
+  "data": {
+    "_id": "collectionId",
+    "name": "Updated Collection Name",
+    "slug": "updated-collection-name",
+    ...
+  }
+}
+
+5. Delete Collection (Admin Only)
+-----------------------------
+Endpoint: DELETE /:id
+Description: Delete a collection (requires admin access)
+
+Headers:
+  - Authorization: Bearer {token}
+
+Response (200):
+{
+  "success": true,
+  "message": "Collection deleted successfully"
+}
+
+Error Responses
+--------------
+400 Bad Request:
+{
+  "success": false,
+  "errors": [
+    {
+      "field": "name",
+      "message": "Name is required"
+    }
+  ]
+}
+
+401 Unauthorized:
+{
+  "success": false,
+  "error": "Access denied. Admin privileges required."
+}
+
+404 Not Found:
+{
+  "success": false,
+  "error": "Collection not found"
+}
+    "message": "Login successful",
+    "accessToken": "string",
+    "refreshToken": "string"
+}
+
+3. Refresh Token
+--------------
+Endpoint: POST /refresh-token
+Description: Get new access token using refresh token
+
+Request Body:
+{
+    "refreshToken": "string"
+}
+
+Response (200):
+{
+    "accessToken": "string"
+}
+
+4. Logout
+--------
+Endpoint: POST /logout
+Description: Invalidate refresh token
+
+Request Body:
+{
+    "refreshToken": "string"
+}
+
+Response (200):
+{
+    "message": "Logged out successfully"
+}
+
+5. Forgot Password
+----------------
+Endpoint: POST /forgot-password
+Description: Request password reset email
+
+Request Body:
+{
+    "email": "string"
+}
+
+Response (200):
+{
+    "message": "Password reset email sent"
+}
+
+6. Reset Password
+---------------
+Endpoint: POST /reset-password
+Description: Reset password using reset token
+
+Request Body:
+{
+    "resetToken": "string",
+    "newPassword": "string"
+}
+
+Response (200):
+{
+    "message": "Password reset successful"
+}
+
+Error Responses
+--------------
+400 Bad Request:
+{
+    "message": "Validation error",
+    "errors": [
+        {
+            "field": "string",
+            "message": "string"
+        }
+    ]
+}
+
+401 Unauthorized:
+{
+    "message": "Invalid credentials" | "Invalid token" | "Token expired"
+}
+
+403 Forbidden:
+{
+    "message": "Access denied"
+}
+
+500 Server Error:
+{
+    "message": "Server error",
+    "error": "string"
+}
+
+Validation Rules
+---------------
+1. Name:
+   - Required
+   - 2-50 characters
+
+2. Email:
+   - Required
+   - Valid email format
+   - Unique in database
+
+3. Password:
+   - Required
+   - 8-30 characters
+   - Must contain:
+     * At least one uppercase letter
+     * At least one lowercase letter
+     * At least one number
+     * At least one special character (@$!%*?&)
+
+Sample Valid Password Examples:
+- Test@123
+- Password123!
+- SecureP@ss1
+- MyP@ssw0rd
+
+Authentication Flow
+------------------
+1. Register/Login:
+   - Client sends credentials
+   - Server validates and creates/authenticates user
+   - Server returns access token (15min) and refresh token (7days)
+
+2. Protected Routes:
+   - Client includes access token in Authorization header
+   - Server validates token and allows/denies access
+
+3. Token Refresh:
+   - When access token expires, use refresh token to get new access token
+   - If refresh token is invalid/expired, user must login again
+
+4. Password Reset:
+   - User requests reset via email
+   - Server sends reset token (valid for 1 hour)
+   - User submits new password with reset token
+   - Server validates token and updates password
