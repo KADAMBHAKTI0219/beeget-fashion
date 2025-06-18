@@ -216,7 +216,7 @@ src/
 
 - Purge unused Tailwind classes via `content` config.
 - Lazy-load images with `loading="lazy"` & `blur` placeholder.
-- Split vendor code via Vite’s dynamic import.
+- Split vendor code via Vite's dynamic import.
 
 ---
 
@@ -238,5 +238,3 @@ src/
 ---
 
 *End of Beeget Fashion Frontend PRD (React + Tailwind).*
-
-
