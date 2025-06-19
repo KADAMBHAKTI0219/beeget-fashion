@@ -7,6 +7,12 @@ const authRoutes = require('./auth/auth.routes');
 const productRoutes = require('./routes/product.routes');
 const categoryRoutes = require('./routes/category.routes');
 const collectionRoutes = require('./routes/collection.routes');
+const promotionRoutes = require('./routes/promotion.routes');
+const contactRoutes = require('./routes/contact.routes');
+const cmsRoutes = require('./routes/cms.routes');
+const cartRoutes = require('./routes/cart.routes');
+const orderRoutes = require('./routes/order.routes');
+const notificationRoutes = require('./routes/notification.routes');
 
 const app = express();
 
@@ -21,6 +27,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/collections', collectionRoutes);
+app.use('/api/promotions', promotionRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/cms', cmsRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
