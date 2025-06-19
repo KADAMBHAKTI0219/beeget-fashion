@@ -1,13 +1,19 @@
-import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import React, { useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { useQuery } from '@tanstack/react-query'
+import useCart from '../hooks/useCart'
+import useAuth from '../hooks/useAuth'
+import useWishlist from '../hooks/useWishlist'
 import Button from '../components/Common/Button'
-import { useCart } from '../hooks/useCart'
+import productImages from '../assets/product-images'
+import { toast } from 'react-toastify'
 
 const ProductDetail = () => {
   const { slug } = useParams()
   const { addToCart } = useCart()
+  const { isAuthenticated } = useAuth()
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist()
   const [quantity, setQuantity] = useState(1)
   const [selectedSize, setSelectedSize] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
@@ -38,10 +44,11 @@ const ProductDetail = () => {
             sizes: ['XS', 'S', 'M', 'L', 'XL'],
             colors: ['White', 'Black', 'Gray', 'Navy'],
             images: [
-              'https://via.placeholder.com/600x800?text=Product+Main',
-              'https://via.placeholder.com/600x800?text=Product+Side',
-              'https://via.placeholder.com/600x800?text=Product+Back',
-              'https://via.placeholder.com/600x800?text=Product+Detail'
+              productImages.tshirtWhite,
+              productImages.tshirtBlack,
+              productImages.tshirtNavy,
+              productImages.tshirtGray,
+              productImages.productDetailView
             ],
             category: 'women',
             inStock: true,
@@ -100,25 +107,86 @@ const ProductDetail = () => {
   
   // Handle add to cart
   const handleAddToCart = () => {
+    if (!isAuthenticated) {
+      toast.error('Please log in to add items to your cart', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
+      })
+      return
+    }
+    
     if (!selectedSize) {
-      alert('Please select a size')
+      toast.warning('Please select a size', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
+      })
       return
     }
     
     if (!selectedColor) {
-      alert('Please select a color')
+      toast.warning('Please select a color', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
+      })
       return
     }
     
-    addToCart({
+    // Create product object with basic details
+    const productToAdd = {
       id: product.id,
       name: product.name,
       price: product.price,
-      image: product.images[0],
-      quantity,
-      size: selectedSize,
-      color: selectedColor
-    })
+      image: product.images[0]
+    }
+    
+    // Call addToCart with separate parameters as expected by the function
+    addToCart(productToAdd, quantity, selectedSize, selectedColor)
+    
+    // Open cart sidebar automatically
+    document.dispatchEvent(new CustomEvent('openCart'))
+  }
+  
+  // Wishlist handler
+  const handleWishlist = () => {
+    if (isInWishlist(product.id)) {
+      removeFromWishlist(product.id)
+      toast.info(`${product.name} removed from wishlist!`, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
+      })
+    } else {
+      addToWishlist({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.images[0],
+        slug: slug
+      })
+      toast.success(`${product.name} added to wishlist!`, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
+      })
+    }
   }
   
   // Loading state
@@ -346,15 +414,16 @@ const ProductDetail = () => {
               <Button 
                 fullWidth 
                 onClick={handleAddToCart}
-                disabled={!product.inStock}
+                disabled={!product.inStock || !isAuthenticated}
               >
-                {product.inStock ? 'Add to Cart' : 'Out of Stock'}
+                {!product.inStock ? 'Out of Stock' : isAuthenticated ? 'Add to Cart' : 'Login to Add to Cart'}
               </Button>
               <Button 
                 variant="secondary" 
                 fullWidth
+                onClick={handleWishlist}
               >
-                Add to Wishlist
+                {isInWishlist(product.id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
               </Button>
             </div>
             
@@ -389,7 +458,41 @@ const ProductDetail = () => {
                   </Link>
                   <p className="text-gray-600 mt-1">${relatedProduct.price.toFixed(2)}</p>
                   <div className="mt-4">
-                    <Button fullWidth>Add to Cart</Button>
+                    {isAuthenticated ? (
+                      <Button 
+                        fullWidth 
+                        onClick={() => addToCart({
+                          ...relatedProduct,
+                          quantity: 1
+                        })}
+                      >
+                        Add to Cart
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="secondary"
+                        fullWidth 
+                        onClick={() => {
+                          addToWishlist({
+                            id: relatedProduct.id,
+                            name: relatedProduct.name,
+                            price: relatedProduct.price,
+                            image: relatedProduct.image,
+                            slug: relatedProduct.slug
+                          })
+                          toast.success(`${relatedProduct.name} added to wishlist!`, {
+                            position: "top-right",
+                            autoClose: 3000,
+                            hideProgressBar: false,
+                            closeOnClick: true,
+                            pauseOnHover: true,
+                            draggable: true
+                          })
+                        }}
+                      >
+                        Add to Wishlist
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>

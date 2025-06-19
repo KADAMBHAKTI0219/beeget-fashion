@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useContext } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import Button from '../components/Common/Button'
-import { useCart } from '../hooks/useCart'
+import CartContext from '../contexts/CartContext'
 import { useAuth } from '../hooks/useAuth'
 
 // Form validation schema
@@ -42,7 +42,8 @@ const schema = yup.object().shape({
 })
 
 const Checkout = () => {
-  const { cartItems, totalPrice, clearCart } = useCart()
+  const { cart: cartItems, getCartTotal, clearCart } = useContext(CartContext)
+  const totalPrice = getCartTotal()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [orderPlaced, setOrderPlaced] = useState(false)

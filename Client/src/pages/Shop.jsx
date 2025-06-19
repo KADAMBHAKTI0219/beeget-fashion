@@ -2,9 +2,17 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import axios from '../utils/api'
+import useAuth from '../hooks/useAuth'
+import useCart from '../hooks/useCart'
+import useWishlist from '../hooks/useWishlist'
 import Button from '../components/Common/Button'
+import productImages from '../assets/product-images'
+import { toast } from 'react-toastify'
 
 const Shop = () => {
+  const { isAuthenticated } = useAuth()
+  const { addToCart } = useCart()
+  const { addToWishlist, isInWishlist, removeFromWishlist } = useWishlist()
   const [searchParams, setSearchParams] = useSearchParams()
   const [filters, setFilters] = useState({
     category: searchParams.get('category') || '',
@@ -41,7 +49,7 @@ const Shop = () => {
               id: 1,
               name: 'Classic White Tee',
               price: 29.99,
-              image: 'https://via.placeholder.com/300x400?text=Product+1',
+              image: productImages.tshirtWhite,
               category: 'women',
               slug: 'classic-white-tee'
             },
@@ -49,7 +57,7 @@ const Shop = () => {
               id: 2,
               name: 'Slim Fit Jeans',
               price: 59.99,
-              image: 'https://via.placeholder.com/300x400?text=Product+2',
+              image: productImages.slimFitJeans,
               category: 'men',
               slug: 'slim-fit-jeans'
             },
@@ -57,7 +65,7 @@ const Shop = () => {
               id: 3,
               name: 'Summer Dress',
               price: 49.99,
-              image: 'https://via.placeholder.com/300x400?text=Product+3',
+              image: productImages.summerDress,
               category: 'women',
               slug: 'summer-dress'
             },
@@ -65,7 +73,7 @@ const Shop = () => {
               id: 4,
               name: 'Leather Wallet',
               price: 39.99,
-              image: 'https://via.placeholder.com/300x400?text=Product+4',
+              image: productImages.leatherWallet,
               category: 'accessories',
               slug: 'leather-wallet'
             },
@@ -73,7 +81,7 @@ const Shop = () => {
               id: 5,
               name: 'Casual Shirt',
               price: 34.99,
-              image: 'https://via.placeholder.com/300x400?text=Product+5',
+              image: productImages.casualShirt,
               category: 'men',
               slug: 'casual-shirt'
             },
@@ -81,7 +89,7 @@ const Shop = () => {
               id: 6,
               name: 'Floral Skirt',
               price: 44.99,
-              image: 'https://via.placeholder.com/300x400?text=Product+6',
+              image: productImages.floralSkirt,
               category: 'women',
               slug: 'floral-skirt'
             },
@@ -89,7 +97,7 @@ const Shop = () => {
               id: 7,
               name: 'Silver Necklace',
               price: 79.99,
-              image: 'https://via.placeholder.com/300x400?text=Product+7',
+              image: productImages.silverNecklace,
               category: 'accessories',
               slug: 'silver-necklace'
             },
@@ -97,7 +105,7 @@ const Shop = () => {
               id: 8,
               name: 'Denim Jacket',
               price: 89.99,
-              image: 'https://via.placeholder.com/300x400?text=Product+8',
+              image: productImages.denimJacket,
               category: 'men',
               slug: 'denim-jacket'
             },
@@ -375,7 +383,56 @@ const Shop = () => {
                         </a>
                         <p className="text-gray-600 mt-1">${product.price.toFixed(2)}</p>
                         <div className="mt-4">
-                          <Button fullWidth>Add to Cart</Button>
+                          {isAuthenticated ? (
+                            <Button 
+                              fullWidth
+                              onClick={(e) => {
+                                e.preventDefault()
+                                addToCart(product)
+                              }}
+                            >
+                              Add to Cart
+                            </Button>
+                          ) : (
+                            <Button 
+                              fullWidth
+                              variant="secondary"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                if (isInWishlist(product.id)) {
+                                  removeFromWishlist(product.id)
+                                  toast.info(`${product.name} removed from wishlist!`, {
+                                    position: "top-right",
+                                    autoClose: 3000,
+                                    hideProgressBar: false,
+                                    closeOnClick: true,
+                                    pauseOnHover: true,
+                                    draggable: true
+                                  })
+                                } else {
+                                  addToWishlist(product)
+                                  toast.success(`${product.name} added to wishlist!`, {
+                                    position: "top-right",
+                                    autoClose: 3000,
+                                    hideProgressBar: false,
+                                    closeOnClick: true,
+                                    pauseOnHover: true,
+                                    draggable: true
+                                  })
+                                  toast.info(`Please login to add to cart.`, {
+                                    position: "top-right",
+                                    autoClose: 3000,
+                                    hideProgressBar: false,
+                                    closeOnClick: true,
+                                    pauseOnHover: true,
+                                    draggable: true
+                                  })
+                                }
+                              }}
+                            >
+                              {isInWishlist(product.id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>

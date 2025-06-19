@@ -19,11 +19,11 @@ const Button = forwardRef((
   
   // Variant classes
   const variantClasses = {
-    primary: 'bg-teal hover:bg-teal/90 text-white focus:ring-teal/50',
-    secondary: 'bg-white border border-charcoal text-charcoal hover:bg-gray-50 focus:ring-charcoal/30',
-    outline: 'bg-transparent border border-teal text-teal hover:bg-teal/10 focus:ring-teal/30',
+    primary: 'bg-java-400 hover:bg-java-500 text-white focus:ring-java-400/50',
+    secondary: 'bg-white border border-java-800 text-java-800 hover:bg-java-50 focus:ring-java-800/30',
+    outline: 'bg-transparent border border-java-400 text-java-400 hover:bg-java-100 focus:ring-java-400/30',
     danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500/50',
-    ghost: 'bg-transparent text-charcoal hover:bg-gray-100 focus:ring-gray-500/30'
+    ghost: 'bg-transparent text-java-800 hover:bg-java-50 focus:ring-java-500/30'
   }
   
   // Size classes

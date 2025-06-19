@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useState, useContext } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Button from '../components/Common/Button'
-import { useCart } from '../hooks/useCart'
+import CartContext from '../contexts/CartContext'
 import { useAuth } from '../hooks/useAuth'
+import { toast } from 'react-toastify'
 
 const Cart = () => {
-  const { cartItems, updateQuantity, removeFromCart, clearCart, totalPrice } = useCart()
+  const { cart: cartItems, updateQuantity, removeFromCart, clearCart, getCartTotal } = useContext(CartContext)
+  const totalPrice = getCartTotal()
   const { user } = useAuth()
   const [couponCode, setCouponCode] = useState('')
   const [couponApplied, setCouponApplied] = useState(false)
@@ -28,8 +30,23 @@ const Cart = () => {
     if (couponCode.toLowerCase() === 'discount20') {
       setCouponApplied(true)
       setCouponDiscount(20) // 20% discount
+      toast.success('Coupon applied successfully!', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
+      })
     } else {
-      alert('Invalid coupon code')
+      toast.error('Invalid coupon code', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
+      })
     }
   }
   

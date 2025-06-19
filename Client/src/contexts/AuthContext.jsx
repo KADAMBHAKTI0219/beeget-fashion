@@ -184,6 +184,29 @@ export const AuthProvider = ({ children }) => {
   // Check if user is admin
   const isAdmin = user?.isAdmin || false
   
+  // Forgot password function
+  const forgotPassword = async (email) => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // In a real app, this would be an API call
+      // For now, we'll simulate a successful password reset request with mock data
+      // const response = await axios.post('/auth/forgot-password', { email })
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      return { success: true }
+    } catch (err) {
+      console.error('Forgot password error:', err)
+      setError(err.response?.data?.message || 'Failed to process request. Please try again.')
+      return { success: false, error: err.response?.data?.message || 'Failed to process request' }
+    } finally {
+      setLoading(false)
+    }
+  }
+  
   return (
     <AuthContext.Provider
       value={{
@@ -195,6 +218,7 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         updateProfile,
+        forgotPassword,
         isAuthenticated,
         isAdmin
       }}

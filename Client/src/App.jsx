@@ -2,8 +2,11 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { CartProvider } from './contexts/CartContext'
+import { WishlistProvider } from './contexts/WishlistContext'
 import Layout from './components/Layout/Layout'
 import ProtectedRoute from './components/Common/ProtectedRoute'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 // Lazy load pages for better performance
 const Home = lazy(() => import('./pages/Home'))
@@ -13,6 +16,7 @@ const Cart = lazy(() => import('./pages/Cart'))
 const Checkout = lazy(() => import('./pages/Checkout'))
 const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Orders = lazy(() => import('./pages/Orders'))
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
@@ -36,7 +40,9 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <Suspense fallback={<LoadingFallback />}>
+        <WishlistProvider>
+          <ToastContainer />
+          <Suspense fallback={<LoadingFallback />}>
           <Routes>
             <Route path="/" element={<Layout />}>
               <Route index element={<Home />} />
@@ -46,6 +52,7 @@ function App() {
               <Route path="checkout" element={<Checkout />} />
               <Route path="login" element={<Login />} />
               <Route path="register" element={<Register />} />
+              <Route path="forgot-password" element={<ForgotPassword />} />
               
               {/* New routes */}
               <Route path="about" element={<About />} />
@@ -69,7 +76,8 @@ function App() {
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
-        </Suspense>
+          </Suspense>
+        </WishlistProvider>
       </CartProvider>
     </AuthProvider>
   )

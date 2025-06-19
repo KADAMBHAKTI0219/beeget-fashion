@@ -56,7 +56,7 @@ const Login = () => {
     <div className="min-h-[80vh] flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
         <div className="text-center">
-          <h1 className="text-3xl font-heading font-bold text-charcoal">Welcome Back</h1>
+          <h1 className="text-3xl font-heading font-bold text-java-800">Welcome Back</h1>
           <p className="mt-2 text-gray-600">Sign in to your account</p>
         </div>
         
@@ -92,7 +92,7 @@ const Login = () => {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-teal border-gray-300 rounded focus:ring-teal"
+                  className="h-4 w-4 text-java-400 border-gray-300 rounded focus:ring-java-400"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                   Remember me
@@ -100,7 +100,7 @@ const Login = () => {
               </div>
               
               <div className="text-sm">
-                <Link to="/forgot-password" className="text-teal hover:text-teal/80 transition-colors">
+                <Link to="/forgot-password" className="text-java-400 hover:text-java-500 transition-colors">
                   Forgot your password?
                 </Link>
               </div>
@@ -119,7 +119,7 @@ const Login = () => {
           <div className="text-center mt-4">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
-              <Link to="/register" className="text-teal hover:text-teal/80 transition-colors font-medium">
+              <Link to="/register" className="text-java-400 hover:text-java-500 transition-colors font-medium">
                 Sign up
               </Link>
             </p>

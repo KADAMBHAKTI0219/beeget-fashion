@@ -1,7 +1,8 @@
 import { createContext, useState, useEffect } from 'react'
 import axios from '../utils/api'
+import { toast } from 'react-toastify'
 
-export const CartContext = createContext()
+const CartContext = createContext()
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([])
@@ -38,9 +39,25 @@ export const CartProvider = ({ children }) => {
           ...updatedCart[existingItemIndex],
           quantity: updatedCart[existingItemIndex].quantity + quantity
         }
+        toast.success(`${product.name} quantity updated in cart!`, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
         return updatedCart
       } else {
         // Add new item to cart
+        toast.success(`${product.name} added to cart!`, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
         return [...prevCart, {
           ...product,
           quantity,
