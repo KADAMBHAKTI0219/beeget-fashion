@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
+import axios from '../utils/api'
 import useCart from '../hooks/useCart'
 import useAuth from '../hooks/useAuth'
 import useWishlist from '../hooks/useWishlist'
@@ -17,71 +18,49 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1)
   const [selectedSize, setSelectedSize] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   
   // Fetch product details with React Query
   const { data: product, isLoading, error } = useQuery(
     ['product', slug],
     async () => {
-      // In a real app, this would be an API call to get product by slug
-      // For now, we'll simulate a delay and return mock data
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          // Mock product data
-          const mockProduct = {
-            id: 1,
-            name: 'Classic White Tee',
-            slug: 'classic-white-tee',
-            price: 29.99,
-            discount: 0,
-            description: 'A timeless classic white t-shirt made from premium cotton. Perfect for everyday wear, this versatile piece can be dressed up or down for any occasion.',
-            features: [
-              'Made from 100% organic cotton',
-              'Breathable and lightweight fabric',
-              'Reinforced stitching for durability',
-              'Pre-shrunk to maintain shape after washing',
-              'Ethically manufactured'
-            ],
-            sizes: ['XS', 'S', 'M', 'L', 'XL'],
-            colors: ['White', 'Black', 'Gray', 'Navy'],
-            images: [
-              productImages.tshirtWhite,
-              productImages.tshirtBlack,
-              productImages.tshirtNavy,
-              productImages.tshirtGray,
-              productImages.productDetailView
-            ],
-            category: 'women',
-            inStock: true,
-            rating: 4.5,
-            reviewCount: 128,
-            relatedProducts: [
-              {
-                id: 2,
-                name: 'Slim Fit Jeans',
-                price: 59.99,
-                image: 'https://via.placeholder.com/300x400?text=Related+1',
-                slug: 'slim-fit-jeans'
-              },
-              {
-                id: 3,
-                name: 'Summer Dress',
-                price: 49.99,
-                image: 'https://via.placeholder.com/300x400?text=Related+2',
-                slug: 'summer-dress'
-              },
-              {
-                id: 4,
-                name: 'Casual Shirt',
-                price: 34.99,
-                image: 'https://via.placeholder.com/300x400?text=Related+3',
-                slug: 'casual-shirt'
-              }
-            ]
-          }
-          
-          resolve(mockProduct)
-        }, 800)
-      })
+      try {
+        // Make API call to get product by slug
+        const response = await axios.get(`/products/${slug}`)
+        return response.data.data || null
+      } catch (error) {
+        console.error('Error fetching product details:', error)
+        throw error
+      }
+    },
+    {
+      enabled: !!slug,
+      refetchOnWindowFocus: false
+    }
+  )
+  
+  // Fetch related products with React Query
+  const { data: relatedProducts = [], isLoading: isRelatedLoading } = useQuery(
+    ['relatedProducts', product?.categories?.[0]?._id],
+    async () => {
+      try {
+        // Make API call to get related products
+        const params = new URLSearchParams()
+        params.set('category', product.categories[0]._id)
+        params.set('limit', '4')
+        // Exclude current product
+        params.set('exclude', product._id)
+        
+        const response = await axios.get(`/products?${params.toString()}`)
+        return response.data.data || []
+      } catch (error) {
+        console.error('Error fetching related products:', error)
+        return []
+      }
+    },
+    {
+      enabled: !!product?.categories?.[0]?._id,
+      refetchOnWindowFocus: false
     }
   )
   
@@ -143,11 +122,24 @@ const ProductDetail = () => {
       return
     }
     
+    // Check if product is in stock
+    if (product.inventoryCount <= 0) {
+      toast.error('This product is out of stock', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
+      })
+      return
+    }
+    
     // Create product object with basic details
     const productToAdd = {
-      id: product.id,
-      name: product.name,
-      price: product.price,
+      id: product._id,
+      name: product.title,
+      price: product.salePrice || product.price,
       image: product.images[0]
     }
     
@@ -159,10 +151,23 @@ const ProductDetail = () => {
   }
   
   // Wishlist handler
+
   const handleWishlist = () => {
-    if (isInWishlist(product.id)) {
-      removeFromWishlist(product.id)
-      toast.info(`${product.name} removed from wishlist!`, {
+    if (!isAuthenticated) {
+      toast.error('Please log in to add items to your wishlist', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
+      })
+      return
+    }
+    
+    if (isInWishlist(product._id)) {
+      removeFromWishlist(product._id)
+      toast.info(`${product.title} removed from wishlist!`, {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
@@ -172,13 +177,13 @@ const ProductDetail = () => {
       })
     } else {
       addToWishlist({
-        id: product.id,
-        name: product.name,
+        id: product._id,
+        name: product.title,
         price: product.price,
         image: product.images[0],
-        slug: slug
+        slug: product.slug
       })
-      toast.success(`${product.name} added to wishlist!`, {
+      toast.success(`${product.title} added to wishlist!`, {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
@@ -256,8 +261,8 @@ const ProductDetail = () => {
           <div>
             <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
               <img 
-                src={product.images[0]} 
-                alt={product.name} 
+                src={product.images[selectedImageIndex]} 
+                alt={product.title} 
                 className="w-full h-auto rounded-md"
               />
             </div>
@@ -265,11 +270,12 @@ const ProductDetail = () => {
               {product.images.map((image, index) => (
                 <div 
                   key={index} 
-                  className="bg-white p-2 rounded-lg shadow-sm cursor-pointer hover:ring-2 hover:ring-teal transition-all"
+                  className={`bg-white p-2 rounded-lg shadow-sm cursor-pointer ${selectedImageIndex === index ? 'ring-2 ring-teal' : 'hover:ring-2 hover:ring-teal'} transition-all`}
+                  onClick={() => setSelectedImageIndex(index)}
                 >
                   <img 
                     src={image} 
-                    alt={`${product.name} view ${index + 1}`} 
+                    alt={`${product.title} view ${index + 1}`} 
                     className="w-full h-auto rounded-md"
                   />
                 </div>
@@ -285,7 +291,7 @@ const ProductDetail = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              {product.name}
+              {product.title}
             </motion.h1>
             
             <motion.div 
@@ -294,30 +300,35 @@ const ProductDetail = () => {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              <div className="flex text-yellow-400">
-                {[...Array(5)].map((_, i) => (
-                  <svg 
-                    key={i} 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    className={`h-5 w-5 ${i < Math.floor(product.rating) ? 'text-yellow-400' : 'text-gray-300'}`}
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
-                {product.rating % 1 > 0 && (
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    className="h-5 w-5 text-yellow-400"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                )}
-              </div>
-              <span className="text-gray-600 ml-2">{product.rating} ({product.reviewCount} reviews)</span>
+              {/* If rating is available */}
+              {product.rating && (
+                <div className="flex text-yellow-400">
+                  {[...Array(5)].map((_, i) => (
+                    <svg 
+                      key={i} 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      className={`h-5 w-5 ${i < Math.floor(product.rating) ? 'text-yellow-400' : 'text-gray-300'}`}
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                  {product.rating % 1 > 0 && (
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      className="h-5 w-5 text-yellow-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  )}
+                </div>
+              )}
+              {product.rating && product.reviewCount && (
+                <span className="text-gray-600 ml-2">{product.rating} ({product.reviewCount} reviews)</span>
+              )}
             </motion.div>
             
             <motion.div 
@@ -327,9 +338,9 @@ const ProductDetail = () => {
               transition={{ duration: 0.5, delay: 0.2 }}
             >
               ${product.price.toFixed(2)}
-              {product.discount > 0 && (
+              {product.salePrice && product.salePrice < product.price && (
                 <span className="ml-2 text-sm text-red-500 line-through">
-                  ${(product.price / (1 - product.discount / 100)).toFixed(2)}
+                  ${product.price.toFixed(2)}
                 </span>
               )}
             </motion.div>
@@ -347,7 +358,8 @@ const ProductDetail = () => {
             <div className="mb-6">
               <h3 className="text-sm font-medium text-gray-700 mb-2">Size</h3>
               <div className="flex flex-wrap gap-2">
-                {product.sizes.map((size) => (
+                {/* Hardcoded sizes until backend provides them */}
+                {['XS', 'S', 'M', 'L', 'XL'].map((size) => (
                   <button
                     key={size}
                     type="button"
@@ -364,7 +376,8 @@ const ProductDetail = () => {
             <div className="mb-6">
               <h3 className="text-sm font-medium text-gray-700 mb-2">Color</h3>
               <div className="flex flex-wrap gap-2">
-                {product.colors.map((color) => (
+                {/* Hardcoded colors until backend provides them */}
+                {['White', 'Black', 'Gray', 'Navy', 'Red'].map((color) => (
                   <button
                     key={color}
                     type="button"
@@ -414,28 +427,45 @@ const ProductDetail = () => {
               <Button 
                 fullWidth 
                 onClick={handleAddToCart}
-                disabled={!product.inStock || !isAuthenticated}
+                disabled={!isAuthenticated || product.inventoryCount <= 0}
               >
-                {!product.inStock ? 'Out of Stock' : isAuthenticated ? 'Add to Cart' : 'Login to Add to Cart'}
+                {product.inventoryCount <= 0 ? 'Out of Stock' : isAuthenticated ? 'Add to Cart' : 'Login to Add to Cart'}
               </Button>
               <Button 
                 variant="secondary" 
                 fullWidth
                 onClick={handleWishlist}
+                disabled={!isAuthenticated}
               >
-                {isInWishlist(product.id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                {isAuthenticated ? (isInWishlist(product._id) ? 'Remove from Wishlist' : 'Add to Wishlist') : 'Login to Add to Wishlist'}
               </Button>
             </div>
             
             {/* Product Features */}
-            <div className="border-t border-gray-200 pt-6">
-              <h3 className="text-lg font-medium mb-4">Features</h3>
-              <ul className="list-disc pl-5 space-y-2 text-gray-600">
-                {product.features.map((feature, index) => (
-                  <li key={index}>{feature}</li>
-                ))}
-              </ul>
-            </div>
+            {product.features && product.features.length > 0 && (
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-medium mb-4">Features</h3>
+                <ul className="list-disc pl-5 space-y-2 text-gray-600">
+                  {product.features.map((feature, index) => (
+                    <li key={index}>{feature}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {/* Product Tags */}
+            {product.tags && product.tags.length > 0 && (
+              <div className="border-t border-gray-200 pt-6 mt-6">
+                <h3 className="text-lg font-medium mb-4">Tags</h3>
+                <div className="flex flex-wrap gap-2">
+                  {product.tags.map((tag, index) => (
+                    <span key={index} className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
         
@@ -443,60 +473,80 @@ const ProductDetail = () => {
         <div className="mt-16">
           <h2 className="text-2xl font-heading font-semibold mb-6">You May Also Like</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {product.relatedProducts.map((relatedProduct) => (
-              <div key={relatedProduct.id} className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
-                <Link to={`/product/${relatedProduct.slug}`} className="block overflow-hidden">
-                  <img 
-                    src={relatedProduct.image} 
-                    alt={relatedProduct.name} 
-                    className="w-full h-64 object-cover transition-transform hover:scale-105 duration-300"
-                  />
-                </Link>
-                <div className="p-4">
-                  <Link to={`/product/${relatedProduct.slug}`} className="block">
-                    <h3 className="text-lg font-medium text-charcoal hover:text-teal transition-colors">{relatedProduct.name}</h3>
-                  </Link>
-                  <p className="text-gray-600 mt-1">${relatedProduct.price.toFixed(2)}</p>
-                  <div className="mt-4">
-                    {isAuthenticated ? (
-                      <Button 
-                        fullWidth 
-                        onClick={() => addToCart({
-                          ...relatedProduct,
-                          quantity: 1
-                        })}
-                      >
-                        Add to Cart
-                      </Button>
-                    ) : (
-                      <Button 
-                        variant="secondary"
-                        fullWidth 
-                        onClick={() => {
-                          addToWishlist({
-                            id: relatedProduct.id,
-                            name: relatedProduct.name,
-                            price: relatedProduct.price,
-                            image: relatedProduct.image,
-                            slug: relatedProduct.slug
-                          })
-                          toast.success(`${relatedProduct.name} added to wishlist!`, {
-                            position: "top-right",
-                            autoClose: 3000,
-                            hideProgressBar: false,
-                            closeOnClick: true,
-                            pauseOnHover: true,
-                            draggable: true
-                          })
-                        }}
-                      >
-                        Add to Wishlist
-                      </Button>
-                    )}
+            {isRelatedLoading ? (
+              // Loading skeletons for related products
+              [...Array(4)].map((_, index) => (
+                <div key={index} className="bg-white rounded-lg overflow-hidden shadow-md">
+                  <div className="w-full h-64 bg-gray-200 animate-pulse"></div>
+                  <div className="p-4">
+                    <div className="h-5 bg-gray-200 animate-pulse rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 animate-pulse rounded w-1/4 mb-4"></div>
+                    <div className="h-10 bg-gray-200 animate-pulse rounded w-full"></div>
                   </div>
                 </div>
+              ))
+            ) : relatedProducts.length > 0 ? (
+              relatedProducts.map((relatedProduct) => (
+                <div key={relatedProduct._id} className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
+                  <Link to={`/product/${relatedProduct.slug}`} className="block overflow-hidden">
+                    <img 
+                      src={relatedProduct.images[0]} 
+                      alt={relatedProduct.title} 
+                      className="w-full h-64 object-cover transition-transform hover:scale-105 duration-300"
+                    />
+                  </Link>
+                  <div className="p-4">
+                    <Link to={`/product/${relatedProduct.slug}`} className="block">
+                      <h3 className="text-lg font-medium text-charcoal hover:text-teal transition-colors">{relatedProduct.title}</h3>
+                    </Link>
+                    <p className="text-gray-600 mt-1">${relatedProduct.price.toFixed(2)}</p>
+                    <div className="mt-4">
+                      {isAuthenticated ? (
+                        <Button 
+                          fullWidth 
+                          onClick={() => addToCart({
+                            id: relatedProduct._id,
+                            name: relatedProduct.title,
+                            price: relatedProduct.price,
+                            image: relatedProduct.images[0]
+                          }, 1, '', '')}
+                        >
+                          Add to Cart
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="secondary"
+                          fullWidth 
+                          onClick={() => {
+                            addToWishlist({
+                              id: relatedProduct._id,
+                              name: relatedProduct.title,
+                              price: relatedProduct.price,
+                              image: relatedProduct.images[0],
+                              slug: relatedProduct.slug
+                            })
+                            toast.success(`${relatedProduct.title} added to wishlist!`, {
+                              position: "top-right",
+                              autoClose: 3000,
+                              hideProgressBar: false,
+                              closeOnClick: true,
+                              pauseOnHover: true,
+                              draggable: true
+                            })
+                          }}
+                        >
+                          Add to Wishlist
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-8">
+                <p className="text-gray-500">No related products found</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

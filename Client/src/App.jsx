@@ -7,6 +7,7 @@ import Layout from './components/Layout/Layout'
 import ProtectedRoute from './components/Common/ProtectedRoute'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import AccountAddresses from './pages/AccountAddresses'
 
 // Lazy load pages for better performance
 const Home = lazy(() => import('./pages/Home'))
@@ -17,6 +18,7 @@ const Checkout = lazy(() => import('./pages/Checkout'))
 const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Orders = lazy(() => import('./pages/Orders'))
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
@@ -28,6 +30,7 @@ const Contact = lazy(() => import('./pages/Contact'))
 const Shipping = lazy(() => import('./pages/Shipping'))
 const FAQ = lazy(() => import('./pages/FAQ'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
+const AccountSettings = lazy(() => import('./pages/AccountSettings'))
 
 // Loading fallback
 const LoadingFallback = () => (
@@ -53,6 +56,7 @@ function App() {
               <Route path="login" element={<Login />} />
               <Route path="register" element={<Register />} />
               <Route path="forgot-password" element={<ForgotPassword />} />
+              <Route path="verify-email" element={<VerifyEmail />} />
               
               {/* New routes */}
               <Route path="about" element={<About />} />
@@ -65,6 +69,8 @@ function App() {
               <Route path="account" element={<ProtectedRoute />}>
                 <Route path="profile" element={<Profile />} />
                 <Route path="orders" element={<Orders />} />
+                <Route path="settings" element={<AccountSettings />} />
+                <Route path="addresses" element={<AccountAddresses />} />
               </Route>
               
               {/* Protected Admin Routes */}

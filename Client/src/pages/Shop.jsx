@@ -39,124 +39,47 @@ const Shop = () => {
   const { data: products, isLoading, error } = useQuery(
     ['products', filters],
     async () => {
-      // In a real app, this would be an API call with filters
-      // For now, we'll simulate a delay and return mock data
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          // Mock data
-          const mockProducts = [
-            {
-              id: 1,
-              name: 'Classic White Tee',
-              price: 29.99,
-              image: productImages.tshirtWhite,
-              category: 'women',
-              slug: 'classic-white-tee'
-            },
-            {
-              id: 2,
-              name: 'Slim Fit Jeans',
-              price: 59.99,
-              image: productImages.slimFitJeans,
-              category: 'men',
-              slug: 'slim-fit-jeans'
-            },
-            {
-              id: 3,
-              name: 'Summer Dress',
-              price: 49.99,
-              image: productImages.summerDress,
-              category: 'women',
-              slug: 'summer-dress'
-            },
-            {
-              id: 4,
-              name: 'Leather Wallet',
-              price: 39.99,
-              image: productImages.leatherWallet,
-              category: 'accessories',
-              slug: 'leather-wallet'
-            },
-            {
-              id: 5,
-              name: 'Casual Shirt',
-              price: 34.99,
-              image: productImages.casualShirt,
-              category: 'men',
-              slug: 'casual-shirt'
-            },
-            {
-              id: 6,
-              name: 'Floral Skirt',
-              price: 44.99,
-              image: productImages.floralSkirt,
-              category: 'women',
-              slug: 'floral-skirt'
-            },
-            {
-              id: 7,
-              name: 'Silver Necklace',
-              price: 79.99,
-              image: productImages.silverNecklace,
-              category: 'accessories',
-              slug: 'silver-necklace'
-            },
-            {
-              id: 8,
-              name: 'Denim Jacket',
-              price: 89.99,
-              image: productImages.denimJacket,
-              category: 'men',
-              slug: 'denim-jacket'
-            },
-          ]
-          
-          // Filter by category
-          let filtered = [...mockProducts]
-          if (filters.category) {
-            filtered = filtered.filter(product => product.category === filters.category)
-          }
-          
-          // Filter by price
-          if (filters.minPrice) {
-            filtered = filtered.filter(product => product.price >= Number(filters.minPrice))
-          }
-          if (filters.maxPrice) {
-            filtered = filtered.filter(product => product.price <= Number(filters.maxPrice))
-          }
-          
-          // Filter by search term
-          if (filters.search) {
-            const searchTerm = filters.search.toLowerCase()
-            filtered = filtered.filter(product => 
-              product.name.toLowerCase().includes(searchTerm) ||
-              product.category.toLowerCase().includes(searchTerm)
-            )
-          }
-          
-          // Sort products
-          switch (filters.sort) {
-            case 'price-asc':
-              filtered.sort((a, b) => a.price - b.price)
-              break
-            case 'price-desc':
-              filtered.sort((a, b) => b.price - a.price)
-              break
-            case 'name-asc':
-              filtered.sort((a, b) => a.name.localeCompare(b.name))
-              break
-            case 'name-desc':
-              filtered.sort((a, b) => b.name.localeCompare(a.name))
-              break
-            case 'newest':
-            default:
-              // In a real app, this would sort by date
-              break
-          }
-          
-          resolve(filtered)
-        }, 800)
-      })
+      try {
+        // Build query parameters for API call
+        const params = new URLSearchParams()
+        
+        if (filters.category) params.set('category', filters.category)
+        if (filters.minPrice) params.set('minPrice', filters.minPrice)
+        if (filters.maxPrice) params.set('maxPrice', filters.maxPrice)
+        if (filters.search) params.set('search', filters.search)
+        
+        // Set sorting parameter
+        switch (filters.sort) {
+          case 'price-asc':
+            params.set('sort', 'price')
+            params.set('order', 'asc')
+            break
+          case 'price-desc':
+            params.set('sort', 'price')
+            params.set('order', 'desc')
+            break
+          case 'name-asc':
+            params.set('sort', 'title')
+            params.set('order', 'asc')
+            break
+          case 'name-desc':
+            params.set('sort', 'title')
+            params.set('order', 'desc')
+            break
+          case 'newest':
+          default:
+            params.set('sort', 'createdAt')
+            params.set('order', 'desc')
+            break
+        }
+        
+        // Make API call to get products
+        const response = await axios.get(`/products?${params.toString()}`)
+        return response.data.data || []
+      } catch (error) {
+        console.error('Error fetching products:', error)
+        throw error
+      }
     },
     {
       keepPreviousData: true
@@ -372,14 +295,18 @@ const Shop = () => {
                     <div key={product.id} className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
                       <a href={`/product/${product.slug}`} className="block overflow-hidden">
                         <img 
-                          src={product.image} 
-                          alt={product.name} 
+                          src={product.images && product.images.length > 0 ? product.images[0] : productImages.tshirtWhite} 
+                          alt={product.title || product.name} 
                           className="w-full h-64 object-cover transition-transform hover:scale-105 duration-300"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = productImages.tshirtWhite;
+                          }}
                         />
                       </a>
                       <div className="p-4">
                         <a href={`/product/${product.slug}`} className="block">
-                          <h3 className="text-lg font-medium text-charcoal hover:text-teal transition-colors">{product.name}</h3>
+                          <h3 className="text-lg font-medium text-charcoal hover:text-teal transition-colors">{product.title || product.name}</h3>
                         </a>
                         <p className="text-gray-600 mt-1">${product.price.toFixed(2)}</p>
                         <div className="mt-4">
@@ -400,8 +327,8 @@ const Shop = () => {
                               onClick={(e) => {
                                 e.preventDefault()
                                 if (isInWishlist(product.id)) {
-                                  removeFromWishlist(product.id)
-                                  toast.info(`${product.name} removed from wishlist!`, {
+                                  removeFromWishlist(product.id || product._id)
+                                  toast.info(`${product.title || product.name} removed from wishlist!`, {
                                     position: "top-right",
                                     autoClose: 3000,
                                     hideProgressBar: false,
@@ -411,7 +338,7 @@ const Shop = () => {
                                   })
                                 } else {
                                   addToWishlist(product)
-                                  toast.success(`${product.name} added to wishlist!`, {
+                                  toast.success(`${product.title || product.name} added to wishlist!`, {
                                     position: "top-right",
                                     autoClose: 3000,
                                     hideProgressBar: false,
@@ -430,7 +357,7 @@ const Shop = () => {
                                 }
                               }}
                             >
-                              {isInWishlist(product.id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                              {isInWishlist(product.id || product._id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
                             </Button>
                           )}
                         </div>

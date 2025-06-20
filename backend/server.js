@@ -13,6 +13,7 @@ const cmsRoutes = require('./routes/cms.routes');
 const cartRoutes = require('./routes/cart.routes');
 const orderRoutes = require('./routes/order.routes');
 const notificationRoutes = require('./routes/notification.routes');
+const userRoutes = require('./routes/user.routes');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/cms', cmsRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/user', userRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

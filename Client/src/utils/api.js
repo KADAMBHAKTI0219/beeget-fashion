@@ -15,8 +15,14 @@ api.interceptors.request.use(
     // Get token from localStorage
     const tokens = localStorage.getItem('tokens');
     if (tokens) {
-      const { accessToken } = JSON.parse(tokens);
-      config.headers.Authorization = `Bearer ${accessToken}`;
+      try {
+        const { accessToken } = JSON.parse(tokens);
+        config.headers.Authorization = `Bearer ${accessToken}`;
+      } catch (error) {
+        console.error('Error parsing tokens in request interceptor:', error);
+        // Clear invalid tokens
+        localStorage.removeItem('tokens');
+      }
     }
     return config;
   },
@@ -42,7 +48,18 @@ api.interceptors.response.use(
           return Promise.reject(error);
         }
         
-        const { refreshToken } = JSON.parse(tokens);
+        let refreshToken;
+        try {
+          const parsedTokens = JSON.parse(tokens);
+          refreshToken = parsedTokens.refreshToken;
+        } catch (parseError) {
+          console.error('Error parsing tokens in response interceptor:', parseError);
+          // Clear invalid tokens and redirect to login
+          localStorage.removeItem('tokens');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+          return Promise.reject(error);
+        }
         
         // Request new access token
         const response = await axios.post(

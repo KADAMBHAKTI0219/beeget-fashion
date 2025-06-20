@@ -54,10 +54,12 @@ const Register = () => {
       const result = await registerUser(userData)
       
       if (result.success) {
-        // Redirect to login page with success message
-        navigate('/login', { 
+        // Redirect to verification page with success message
+        navigate('/verify-email', { 
           state: { 
-            message: 'Registration successful! Please log in with your new account.', 
+            email: userData.email,
+            message: result.message || 'Registration successful! Please check your email to verify your account.', 
+            emailStatus: result.emailStatus,
             type: 'success' 
           } 
         })

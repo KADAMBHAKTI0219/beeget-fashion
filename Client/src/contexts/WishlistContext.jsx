@@ -12,7 +12,13 @@ export const WishlistProvider = ({ children }) => {
   useEffect(() => {
     const storedWishlist = localStorage.getItem('wishlist')
     if (storedWishlist) {
-      setWishlist(JSON.parse(storedWishlist))
+      try {
+        setWishlist(JSON.parse(storedWishlist))
+      } catch (error) {
+        console.error('Error parsing stored wishlist data:', error)
+        // Clear invalid data
+        localStorage.removeItem('wishlist')
+      }
     }
   }, [])
   
@@ -24,8 +30,14 @@ export const WishlistProvider = ({ children }) => {
   // Add item to wishlist
   const addToWishlist = (product) => {
     setWishlist(prevWishlist => {
+      // Use _id if available, otherwise use id
+      const productId = product._id || product.id
+      
       // Check if product already exists in wishlist
-      const existingItemIndex = prevWishlist.findIndex(item => item.id === product.id)
+      const existingItemIndex = prevWishlist.findIndex(item => {
+        const itemId = item._id || item.id
+        return itemId === productId
+      })
       
       if (existingItemIndex !== -1) {
         // Item already in wishlist, no need to add again
@@ -42,12 +54,18 @@ export const WishlistProvider = ({ children }) => {
   
   // Remove item from wishlist
   const removeFromWishlist = (itemId) => {
-    setWishlist(prevWishlist => prevWishlist.filter(item => item.id !== itemId))
+    setWishlist(prevWishlist => prevWishlist.filter(item => {
+      const id = item._id || item.id
+      return id !== itemId
+    }))
   }
   
   // Check if item is in wishlist
   const isInWishlist = (itemId) => {
-    return wishlist.some(item => item.id === itemId)
+    return wishlist.some(item => {
+      const id = item._id || item.id
+      return id === itemId
+    })
   }
   
   // Clear wishlist

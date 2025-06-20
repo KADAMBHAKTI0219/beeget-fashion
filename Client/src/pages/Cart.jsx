@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Button from '../components/Common/Button'
 import CartContext from '../contexts/CartContext'
-import { useAuth } from '../hooks/useAuth'
+import useAuth from '../hooks/useAuth'
 import { toast } from 'react-toastify'
 
 const Cart = () => {

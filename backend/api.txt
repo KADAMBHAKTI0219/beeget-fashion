@@ -48,6 +48,112 @@ Response:
 }
 ```
 
+## User Profile API
+
+### Get User Addresses
+```
+GET /user/addresses
+
+Headers:
+Authorization: Bearer jwt_token_here
+
+Response:
+{
+    "success": true,
+    "data": [
+        {
+            "_id": "address_id",
+            "label": "Home",
+            "line1": "123 Main St",
+            "city": "New York",
+            "state": "NY",
+            "zip": "10001",
+            "country": "USA"
+        }
+    ]
+}
+```
+
+### Add New Address
+```
+POST /user/addresses
+
+Headers:
+Authorization: Bearer jwt_token_here
+
+Request Body:
+{
+    "label": "Home",
+    "line1": "123 Main St",
+    "city": "New York",
+    "state": "NY",
+    "zip": "10001",
+    "country": "USA"
+}
+
+Response:
+{
+    "success": true,
+    "message": "Address added successfully",
+    "data": {
+        "_id": "address_id",
+        "label": "Home",
+        "line1": "123 Main St",
+        "city": "New York",
+        "state": "NY",
+        "zip": "10001",
+        "country": "USA"
+    }
+}
+```
+
+### Update Address
+```
+PUT /user/addresses/:addressId
+
+Headers:
+Authorization: Bearer jwt_token_here
+
+Request Body:
+{
+    "label": "Office",
+    "line1": "456 Business Ave",
+    "city": "New York",
+    "state": "NY",
+    "zip": "10002",
+    "country": "USA"
+}
+
+Response:
+{
+    "success": true,
+    "message": "Address updated successfully",
+    "data": {
+        "_id": "address_id",
+        "label": "Office",
+        "line1": "456 Business Ave",
+        "city": "New York",
+        "state": "NY",
+        "zip": "10002",
+        "country": "USA"
+    }
+}
+```
+
+### Delete Address
+```
+DELETE /user/addresses/:addressId
+
+Headers:
+Authorization: Bearer jwt_token_here
+
+Response:
+{
+    "success": true,
+    "message": "Address deleted successfully"
+}
+```
+
 ## Products API
 
 ### Create Product (Admin)
@@ -623,3 +729,4 @@ Response:
         "isActive": true
     }
 }
+```

@@ -13,7 +13,13 @@ export const CartProvider = ({ children }) => {
   useEffect(() => {
     const storedCart = localStorage.getItem('cart')
     if (storedCart) {
-      setCart(JSON.parse(storedCart))
+      try {
+        setCart(JSON.parse(storedCart))
+      } catch (error) {
+        console.error('Error parsing stored cart data:', error)
+        // Clear invalid data
+        localStorage.removeItem('cart')
+      }
     }
   }, [])
   

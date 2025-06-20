@@ -42,7 +42,18 @@ const Login = () => {
         // Redirect to the page user was trying to access or home
         navigate(from, { replace: true })
       } else {
-        setServerError(result.error || 'Login failed. Please try again.')
+        // Check if email needs verification
+        if (result.needsVerification) {
+          // Redirect to verification page or show verification message
+          navigate('/verify-email', { 
+            state: { 
+              email: result.email,
+              message: 'Please verify your email before logging in.'
+            }
+          })
+        } else {
+          setServerError(result.error || 'Login failed. Please try again.')
+        }
       }
     } catch (error) {
       setServerError('An unexpected error occurred. Please try again.')

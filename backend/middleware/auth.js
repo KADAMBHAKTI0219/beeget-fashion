@@ -17,7 +17,12 @@ const auth = (requiredRole) => async (req, res, next) => {
             return res.status(401).json({ message: 'Invalid token' });
         }
 
+        // पहले:
         req.user = user;
+        
+        // अब:
+        // Set user ID in request object
+        req.user = { userId: decoded.userId };
 
         if (requiredRole && user.role !== requiredRole) {
             return res.status(403).json({

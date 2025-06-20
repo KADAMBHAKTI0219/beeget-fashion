@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Outlet, useLocation, Navigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
+import useAuth from '../hooks/useAuth'
 import Button from '../components/Common/Button'
 
 const Account = () => {

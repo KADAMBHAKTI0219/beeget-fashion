@@ -15,48 +15,70 @@ export const AuthProvider = ({ children }) => {
     const storedTokens = localStorage.getItem('tokens')
     
     if (storedUser && storedTokens) {
-      setUser(JSON.parse(storedUser))
-      setTokens(JSON.parse(storedTokens))
-      
-      // Set authorization header for all future requests
-      const parsedTokens = JSON.parse(storedTokens)
-      axios.defaults.headers.common['Authorization'] = `Bearer ${parsedTokens.accessToken}`
+      try {
+        const parsedUser = JSON.parse(storedUser)
+        const parsedTokens = JSON.parse(storedTokens)
+        
+        setUser(parsedUser)
+        setTokens(parsedTokens)
+        
+        // Set authorization header for all future requests
+        axios.defaults.headers.common['Authorization'] = `Bearer ${parsedTokens.accessToken}`
+      } catch (error) {
+        console.error('Error parsing stored auth data:', error)
+        // Clear invalid data
+        localStorage.removeItem('user')
+        localStorage.removeItem('tokens')
+      }
     }
     
     setLoading(false)
   }, [])
 
   // Login function
-  const login = async (email, password) => {
+  const login = async (email, password, autoLoginData = null) => {
     try {
       setLoading(true)
       setError(null)
       
-      // In a real app, this would be an API call
-      // For now, we'll simulate a successful login with mock data
-      // const response = await axios.post('/auth/login', { email, password })
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Mock response data
-      const mockResponse = {
-        data: {
-          user: {
-            id: 1,
-            firstName: 'John',
-            lastName: 'Doe',
-            email: email,
-            isAdmin: email === 'admin@example.com'
-          },
-          tokens: {
-            accessToken: 'mock-access-token',
-            refreshToken: 'mock-refresh-token'
-          }
-        }
+      // अगर autoLoginData है तो API कॉल को बायपास करें
+      if (autoLoginData) {
+        const { tokens: tokensData, userData } = autoLoginData;
+        
+        // Save to state
+        setUser(userData);
+        setTokens(tokensData);
+        
+        // Save to localStorage
+        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('tokens', JSON.stringify(tokensData));
+        
+        // Set authorization header for all future requests
+        axios.defaults.headers.common['Authorization'] = `Bearer ${tokensData.accessToken}`;
+        
+        return { success: true, message: 'Login successful' };
       }
       
-      const { user: userData, tokens: tokensData } = mockResponse.data
+      // Make real API call to backend
+      const response = await axios.post('/auth/login', { email, password })
+      
+      // Extract data from response
+      const { accessToken, refreshToken, message } = response.data
+      
+      // Get user data
+      const userResponse = await axios.get('/auth/profile', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      })
+      
+      const userData = userResponse.data
+      
+      // Create tokens object
+      const tokensData = {
+        accessToken,
+        refreshToken
+      }
       
       // Save to state
       setUser(userData)
@@ -67,13 +89,19 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('tokens', JSON.stringify(tokensData))
       
       // Set authorization header for all future requests
-      axios.defaults.headers.common['Authorization'] = `Bearer ${tokensData.accessToken}`
+      axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
       
-      return { success: true }
+      return { success: true, message }
     } catch (err) {
       console.error('Login error:', err)
-      setError(err.response?.data?.message || 'Failed to login. Please check your credentials.')
-      return { success: false, error: err.response?.data?.message || 'Failed to login' }
+      const errorMessage = err.response?.data?.message || 'Failed to login. Please check your credentials.'
+      setError(errorMessage)
+      return { 
+        success: false, 
+        error: errorMessage,
+        needsVerification: err.response?.data?.needsVerification || false,
+        email: err.response?.data?.email
+      }
     } finally {
       setLoading(false)
     }
@@ -85,94 +113,94 @@ export const AuthProvider = ({ children }) => {
       setLoading(true)
       setError(null)
       
-      // In a real app, this would be an API call
-      // For now, we'll simulate a successful registration with mock data
-      // const response = await axios.post('/auth/register', userData)
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Mock response data
-      const mockResponse = {
-        data: {
-          user: {
-            id: 1,
-            firstName: userData.firstName,
-            lastName: userData.lastName,
-            email: userData.email,
-            isAdmin: false
-          },
-          tokens: {
-            accessToken: 'mock-access-token',
-            refreshToken: 'mock-refresh-token'
-          }
-        }
+      // Format the data according to backend requirements
+      const formattedData = {
+        name: `${userData.firstName} ${userData.lastName}`,
+        email: userData.email,
+        password: userData.password
       }
       
-      const { user: newUser, tokens: tokensData } = mockResponse.data
+      // Make real API call to backend
+      const response = await axios.post('/auth/register', formattedData)
       
-      // Save to state
-      setUser(newUser)
-      setTokens(tokensData)
+      // For registration, we don't automatically log in the user
+      // since email verification is required
       
-      // Save to localStorage
-      localStorage.setItem('user', JSON.stringify(newUser))
-      localStorage.setItem('tokens', JSON.stringify(tokensData))
-      
-      // Set authorization header for all future requests
-      axios.defaults.headers.common['Authorization'] = `Bearer ${tokensData.accessToken}`
-      
-      return { success: true }
+      return { 
+        success: true, 
+        message: response.data.message,
+        emailStatus: response.data.emailStatus
+      }
     } catch (err) {
       console.error('Registration error:', err)
-      setError(err.response?.data?.message || 'Failed to register. Please try again.')
-      return { success: false, error: err.response?.data?.message || 'Failed to register' }
+      const errorMessage = err.response?.data?.message || 'Failed to register. Please try again.'
+      setError(errorMessage)
+      return { success: false, error: errorMessage }
     } finally {
       setLoading(false)
     }
   }
   
   // Logout function
-  const logout = () => {
-    // Clear state
-    setUser(null)
-    setTokens(null)
-    
-    // Clear localStorage
-    localStorage.removeItem('user')
-    localStorage.removeItem('tokens')
-    
-    // Clear authorization header
-    delete axios.defaults.headers.common['Authorization']
+  const logout = async () => {
+    try {
+      // Get refresh token from state or localStorage
+      const refreshToken = tokens?.refreshToken || JSON.parse(localStorage.getItem('tokens'))?.refreshToken
+      
+      if (refreshToken) {
+        // Call the logout API to invalidate the refresh token on the server
+        await axios.post('/auth/logout', { refreshToken })
+      }
+      
+      // Clear state
+      setUser(null)
+      setTokens(null)
+      
+      // Clear localStorage
+      localStorage.removeItem('user')
+      localStorage.removeItem('tokens')
+      
+      // Clear authorization header
+      delete axios.defaults.headers.common['Authorization']
+      
+      return { success: true }
+    } catch (error) {
+      console.error('Logout error:', error)
+      
+      // Even if the API call fails, we still want to clear the local state
+      setUser(null)
+      setTokens(null)
+      localStorage.removeItem('user')
+      localStorage.removeItem('tokens')
+      delete axios.defaults.headers.common['Authorization']
+      
+      return { success: true } // Return success anyway since the user is effectively logged out
+    }
   }
   
-  // Update profile function
+  // Update user profile
   const updateProfile = async (userData) => {
     try {
       setLoading(true)
-      setError(null)
+      setError('')
       
-      // In a real app, this would be an API call
-      // For now, we'll simulate a successful profile update with mock data
-      // const response = await axios.put('/auth/profile', userData)
+      // Call the API to update profile
+      const response = await api.patch('/auth/profile', userData)
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Update user data
-      const updatedUser = { ...user, ...userData }
-      
-      // Save to state
+      // Update user data in state and localStorage
+      const updatedUser = response.data.user
       setUser(updatedUser)
-      
-      // Save to localStorage
       localStorage.setItem('user', JSON.stringify(updatedUser))
       
-      return { success: true }
-    } catch (err) {
-      console.error('Profile update error:', err)
-      setError(err.response?.data?.message || 'Failed to update profile. Please try again.')
-      return { success: false, error: err.response?.data?.message || 'Failed to update profile' }
+      return { 
+        success: true, 
+        message: response.data.message || 'Profile updated successfully' 
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Failed to update profile'
+      setError(errorMessage)
+      console.error('Update profile error:', error)
+      return { success: false, error: errorMessage }
     } finally {
       setLoading(false)
     }
@@ -190,18 +218,19 @@ export const AuthProvider = ({ children }) => {
       setLoading(true)
       setError(null)
       
-      // In a real app, this would be an API call
-      // For now, we'll simulate a successful password reset request with mock data
-      // const response = await axios.post('/auth/forgot-password', { email })
+      // Make real API call to backend
+      const response = await axios.post('/auth/forgot-password', { email })
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      return { success: true }
+      return { 
+        success: true, 
+        message: response.data.message,
+        emailStatus: response.data.emailStatus 
+      }
     } catch (err) {
       console.error('Forgot password error:', err)
-      setError(err.response?.data?.message || 'Failed to process request. Please try again.')
-      return { success: false, error: err.response?.data?.message || 'Failed to process request' }
+      const errorMessage = err.response?.data?.message || 'Failed to process request. Please try again.'
+      setError(errorMessage)
+      return { success: false, error: errorMessage }
     } finally {
       setLoading(false)
     }

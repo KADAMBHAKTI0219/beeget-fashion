@@ -367,6 +367,69 @@ const resetPassword = async (req, res) => {
     }
 };
 
+// Get user profile
+const getProfile = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        
+        // Find user by ID but exclude sensitive fields
+        const user = await User.findById(userId).select('-password -refreshToken -resetToken -resetTokenExpiry -emailVerificationToken -emailVerificationTokenExpiry');
+        
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// Update user profile
+const updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { name, currentPassword, newPassword } = req.body;
+        
+        // Find user
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        // Update name if provided
+        if (name) {
+            user.name = name;
+        }
+        
+        // Update password if provided
+        if (currentPassword && newPassword) {
+            // Verify current password
+            const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+            if (!isValidPassword) {
+                return res.status(400).json({ message: 'Current password is incorrect' });
+            }
+            
+            // Hash new password
+            const salt = await bcrypt.genSalt(10);
+            user.password = await bcrypt.hash(newPassword, salt);
+        }
+        
+        // Save updated user
+        await user.save();
+        
+        // Return updated user without sensitive fields
+        const updatedUser = await User.findById(userId).select('-password -refreshToken -resetToken -resetTokenExpiry -emailVerificationToken -emailVerificationTokenExpiry');
+        
+        res.json({
+            message: 'Profile updated successfully',
+            user: updatedUser
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
 module.exports = {
     register,
     login,
@@ -375,5 +438,7 @@ module.exports = {
     verifyEmail,
     resendVerificationEmail,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    getProfile,
+    updateProfile
 };
