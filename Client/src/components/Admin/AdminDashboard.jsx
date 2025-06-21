@@ -8,6 +8,7 @@ import CustomerManagement from './CustomerManagement';
 import ContactManagement from './ContactManagement';
 import NotificationManagement from './NotificationManagement';
 import CmsManagement from './CmsManagement';
+import PromotionManagement from './PromotionManagement';
 import Button from '../Common/Button';
 import { toast } from 'react-hot-toast';
 import Modal from '../Common/Modal';
@@ -231,6 +232,7 @@ const AdminDashboard = () => {
     { id: 'products', label: 'Products' },
     { id: 'categories', label: 'Categories' },
     { id: 'collections', label: 'Collections' },
+    { id: 'promotions', label: 'Promotions' },
     { id: 'orders', label: 'Orders' },
     { id: 'customers', label: 'Customers' },
     { id: 'contacts', label: `Messages ${unreadContactCount > 0 ? `(${unreadContactCount})` : ''}` },
@@ -505,6 +507,8 @@ const AdminDashboard = () => {
         return <CategoryManagement />;
       case 'collections':
         return <CollectionManagement />;
+      case 'promotions':
+        return <PromotionManagement />;
       case 'orders':
         return renderOrders();
       case 'customers':

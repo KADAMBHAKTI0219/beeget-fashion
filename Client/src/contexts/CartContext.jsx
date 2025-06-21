@@ -9,6 +9,9 @@ export const CartProvider = ({ children }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [couponCode, setCouponCode] = useState('')
+  const [couponDiscount, setCouponDiscount] = useState(0)
+  const [couponError, setCouponError] = useState(null)
   
   // Check if user is authenticated
   useEffect(() => {
@@ -445,6 +448,20 @@ export const CartProvider = ({ children }) => {
   
   // Get cart total
   const getCartTotal = () => {
+    const subtotal = cart.reduce((total, item) => {
+      // Ensure price is a number
+      const price = typeof item.price === 'number' ? item.price : parseFloat(item.price) || 0
+      // Ensure quantity is a number
+      const quantity = typeof item.quantity === 'number' ? item.quantity : parseInt(item.quantity) || 0
+      return total + (price * quantity)
+    }, 0)
+    
+    // Apply coupon discount if available
+    return subtotal - couponDiscount
+  }
+  
+  // Get cart subtotal (without discount)
+  const getCartSubtotal = () => {
     return cart.reduce((total, item) => {
       // Ensure price is a number
       const price = typeof item.price === 'number' ? item.price : parseFloat(item.price) || 0
@@ -459,6 +476,105 @@ export const CartProvider = ({ children }) => {
     return cart.reduce((count, item) => count + item.quantity, 0)
   }
   
+  // Apply coupon code
+  const applyCoupon = async (code) => {
+    try {
+      setCouponError(null)
+      setLoading(true)
+      
+      if (!code) {
+        setCouponError('Please enter a coupon code')
+        return { success: false, error: 'Please enter a coupon code' }
+      }
+      
+      // Verify coupon with backend
+      const response = await axios.post('/promotions/verify-coupon', { couponCode: code })
+      
+      if (response.data.success) {
+        const { discountType, discountValue, minimumPurchase } = response.data.data
+        
+        // Check minimum purchase requirement
+        const subtotal = getCartSubtotal()
+        if (minimumPurchase && subtotal < minimumPurchase) {
+          setCouponError(`Minimum purchase of $${minimumPurchase.toFixed(2)} required for this coupon`)
+          setCouponCode('')
+          setCouponDiscount(0)
+          return { 
+            success: false, 
+            error: `Minimum purchase of $${minimumPurchase.toFixed(2)} required for this coupon` 
+          }
+        }
+        
+        // Calculate discount
+        let discount = 0
+        if (discountType === 'percentage') {
+          discount = (subtotal * discountValue) / 100
+        } else { // fixed amount
+          discount = discountValue
+        }
+        
+        // Ensure discount doesn't exceed the total
+        if (discount > subtotal) {
+          discount = subtotal
+        }
+        
+        setCouponCode(code)
+        setCouponDiscount(discount)
+        
+        toast.success(`Coupon applied! You saved $${discount.toFixed(2)}`, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+        
+        return { 
+          success: true, 
+          data: { 
+            couponCode: code, 
+            discount, 
+            discountType, 
+            discountValue 
+          } 
+        }
+      } else {
+        setCouponError(response.data.error || 'Invalid coupon code')
+        setCouponCode('')
+        setCouponDiscount(0)
+        return { success: false, error: response.data.error || 'Invalid coupon code' }
+      }
+    } catch (err) {
+      console.error('Error applying coupon:', err)
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to apply coupon'
+      setCouponError(errorMessage)
+      setCouponCode('')
+      setCouponDiscount(0)
+      return { success: false, error: errorMessage }
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+  // Remove coupon
+  const removeCoupon = () => {
+    setCouponCode('')
+    setCouponDiscount(0)
+    setCouponError(null)
+    
+    toast.info('Coupon removed', {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true
+    })
+    
+    return { success: true }
+  }
+
   // Checkout function
   const checkout = async (orderData) => {
     try {
@@ -479,6 +595,10 @@ export const CartProvider = ({ children }) => {
         return { success: false, error: 'Cart is empty' }
       }
       
+      // Calculate subtotal and total
+      const subtotal = getCartSubtotal()
+      const total = getCartTotal()
+      
       // Make a real API call to create an order
       const response = await axios.post('/orders', { 
         ...orderData, 
@@ -488,7 +608,10 @@ export const CartProvider = ({ children }) => {
           price: item.price,
           size: item.size || null,
           color: item.color || null
-        }))
+        })),
+        couponCode: couponCode || null,
+        subtotal,
+        total
       })
       
       if (response.data.success) {
@@ -537,8 +660,14 @@ export const CartProvider = ({ children }) => {
         updateQuantity,
         clearCart,
         getCartTotal,
+        getCartSubtotal,
         getCartItemCount,
-        checkout
+        checkout,
+        couponCode,
+        couponDiscount,
+        couponError,
+        applyCoupon,
+        removeCoupon
       }}
     >
       {children}

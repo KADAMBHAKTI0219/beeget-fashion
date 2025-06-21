@@ -8,6 +8,7 @@ import CartContext from '../contexts/CartContext'
 import useAuth from '../hooks/useAuth'
 import api from '../utils/api'
 import { toast } from 'react-toastify'
+import { FiCheck, FiX } from 'react-icons/fi'
 
 // Form validation schema
 const schema = yup.object().shape({
@@ -44,13 +45,42 @@ const schema = yup.object().shape({
 })
 
 const Checkout = () => {
-  const { cart: cartItems, getCartTotal, clearCart } = useContext(CartContext)
+  const { 
+    cart: cartItems, 
+    getCartTotal, 
+    clearCart,
+    couponCode,
+    couponDiscount,
+    couponError,
+    applyCoupon,
+    removeCoupon
+  } = useContext(CartContext)
+  
+  const [couponInput, setCouponInput] = useState('')
+  const [applyingCoupon, setApplyingCoupon] = useState(false)
+  
   const totalPrice = getCartTotal()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [orderId, setOrderId] = useState('')
   const [isLoadingAddress, setIsLoadingAddress] = useState(false)
+  
+  // Handle coupon application
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) {
+      toast.error('Please enter a coupon code')
+      return
+    }
+    
+    setApplyingCoupon(true)
+    const result = await applyCoupon(couponInput.trim())
+    setApplyingCoupon(false)
+    
+    if (!result.success) {
+      toast.error(result.error || 'Failed to apply coupon')
+    }
+  }
   
   // Initialize form with user data if available
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
@@ -523,12 +553,62 @@ const Checkout = () => {
                 ))}
               </div>
               
+              {/* Coupon Code */}
+              <div className="mb-4">
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Have a coupon?</h3>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value)}
+                    placeholder="Enter coupon code"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-teal focus:border-teal"
+                    disabled={!!couponCode || applyingCoupon}
+                  />
+                  {!couponCode ? (
+                    <Button 
+                      onClick={handleApplyCoupon} 
+                      disabled={applyingCoupon || !couponInput.trim()}
+                      size="sm"
+                      className="whitespace-nowrap"
+                    >
+                      {applyingCoupon ? 'Applying...' : 'Apply'}
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={removeCoupon} 
+                      variant="outline"
+                      size="sm"
+                      className="whitespace-nowrap"
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+                {couponError && (
+                  <p className="text-red-500 text-xs mt-1">{couponError}</p>
+                )}
+                {couponCode && (
+                  <div className="flex items-center mt-2 text-sm text-green-600">
+                    <FiCheck className="mr-1" />
+                    <span>Coupon applied: {couponCode}</span>
+                  </div>
+                )}
+              </div>
+              
               {/* Summary Details */}
               <div className="border-t border-gray-200 pt-4 space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
                   <span className="font-medium">${subtotal.toFixed(2)}</span>
                 </div>
+                
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Discount</span>
+                    <span className="font-medium">-${couponDiscount.toFixed(2)}</span>
+                  </div>
+                )}
                 
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
