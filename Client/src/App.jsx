@@ -7,7 +7,6 @@ import Layout from './components/Layout/Layout'
 import ProtectedRoute from './components/Common/ProtectedRoute'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-import AccountAddresses from './pages/AccountAddresses'
 
 // Lazy load pages for better performance
 const Home = lazy(() => import('./pages/Home'))
@@ -19,8 +18,7 @@ const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'))
-const Profile = lazy(() => import('./pages/Profile'))
-const Orders = lazy(() => import('./pages/Orders'))
+const Account = lazy(() => import('./pages/Account'))
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
@@ -30,7 +28,6 @@ const Contact = lazy(() => import('./pages/Contact'))
 const Shipping = lazy(() => import('./pages/Shipping'))
 const FAQ = lazy(() => import('./pages/FAQ'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
-const AccountSettings = lazy(() => import('./pages/AccountSettings'))
 
 // Loading fallback
 const LoadingFallback = () => (
@@ -65,12 +62,9 @@ function App() {
               <Route path="faq" element={<FAQ />} />
               <Route path="privacy-policy" element={<PrivacyPolicy />} />
               
-              {/* Protected Account Routes */}
-              <Route path="account" element={<ProtectedRoute />}>
-                <Route path="profile" element={<Profile />} />
-                <Route path="orders" element={<Orders />} />
-                <Route path="settings" element={<AccountSettings />} />
-                <Route path="addresses" element={<AccountAddresses />} />
+              {/* Protected Account Route */}
+              <Route path="account/*" element={<ProtectedRoute />}>
+                <Route path="*" element={<Account />} />
               </Route>
               
               {/* Protected Admin Routes */}

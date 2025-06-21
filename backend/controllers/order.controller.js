@@ -1,12 +1,31 @@
+const mongoose = require('mongoose');
 const Order = require('../models/order.model');
-const Cart = require('../models/cart.model');
 const Product = require('../models/product.model');
+const Cart = require('../models/cart.model');
 const { validateObjectId } = require('../middleware/validate');
 
 // Create new order
 exports.createOrder = async (req, res) => {
     try {
-        const { shippingAddress, paymentMethod } = req.body;
+        console.log('Order payload received:', JSON.stringify(req.body, null, 2));
+        
+        let { shippingAddress, paymentMethod, items, subtotal, total } = req.body;
+        
+        // If shipping address is not provided, try to get the default address
+        if (!shippingAddress || Object.keys(shippingAddress).length === 0) {
+            try {
+                const User = require('../models/user.model');
+                const user = await User.findById(req.user.userId).select('addresses');
+                
+                if (user && user.addresses && user.addresses.length > 0) {
+                    shippingAddress = user.addresses[0];
+                    console.log('Using default address:', shippingAddress);
+                }
+            } catch (addressErr) {
+                console.error('Error fetching default address:', addressErr);
+                // Continue with the order process even if getting default address fails
+            }
+        }
 
         // Validate required shipping address fields
         const requiredFields = ['line1', 'city', 'state', 'zip', 'country'];
@@ -19,14 +38,11 @@ exports.createOrder = async (req, res) => {
             });
         }
 
-        // Get user's cart
-        const cart = await Cart.findOne({ userId: req.user._id })
-            .populate('items.productId');
-
-        if (!cart || cart.items.length === 0) {
+        // Validate items from request
+        if (!items || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({
                 success: false,
-                error: 'Cart is empty'
+                error: 'Order items are required'
             });
         }
 
@@ -34,58 +50,107 @@ exports.createOrder = async (req, res) => {
         const orderItems = [];
         let totalAmount = 0;
 
-        for (const item of cart.items) {
-            const product = item.productId;
-
-            // Check stock
-            if (product.stock < item.quantity) {
+        // Process items from the request payload
+        for (const item of items) {
+            console.log('Processing item:', item);
+            
+            // Ensure all required fields are present and properly formatted
+            const productId = item.productId;
+            const quantity = parseInt(item.quantity) || 1;
+            const price = parseFloat(item.price) || 0;
+            
+            // Validate product ID
+            if (!productId) {
                 return res.status(400).json({
                     success: false,
-                    error: `Insufficient stock for ${product.title}`
+                    error: 'Product ID is required for all items'
                 });
             }
 
-            // Add to order items
-            orderItems.push({
-                productId: product._id,
-                quantity: item.quantity,
-                priceAtPurchase: product.price
-            });
+            try {
+                // Get product from database
+                const product = await Product.findById(productId);
+                if (!product) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Product not found: ${productId}`
+                    });
+                }
 
-            // Update total amount
-            totalAmount += product.price * item.quantity;
+                // Check stock (if product has stock field)
+                if (product.stock !== undefined && product.stock < quantity) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Insufficient stock for ${product.title}`
+                    });
+                }
 
-            // Update product stock
-            product.stock -= item.quantity;
-            await product.save();
+                // Add to order items
+                orderItems.push({
+                    productId: product._id,
+                    quantity: quantity,
+                    priceAtPurchase: price || product.price
+                });
+
+                // Update total amount
+                totalAmount += (price || product.price) * quantity;
+
+                // Update product stock if it has stock field
+                if (product.stock !== undefined) {
+                    product.stock -= quantity;
+                    await product.save();
+                }
+            } catch (err) {
+                console.error(`Error processing product ${productId}:`, err);
+                return res.status(400).json({
+                    success: false,
+                    error: `Error processing product ${productId}: ${err.message}`
+                });
+            }
         }
 
+        console.log('Creating order with items:', orderItems);
+        
         // Create order
         const order = await Order.create({
-            userId: req.user._id,
+            userId: req.user.userId,
             items: orderItems,
             shippingAddress,
             paymentMethod,
-            totalAmount,
+            totalAmount: total || totalAmount,
             paymentStatus: 'pending',
             orderStatus: 'processing'
         });
 
-        // Clear cart
-        cart.items = [];
-        await cart.save();
+        // Clear cart if order was successful
+        try {
+            const cart = await Cart.findOne({ userId: req.user.userId });
+            if (cart) {
+                cart.items = [];
+                await cart.save();
+            }
+        } catch (cartErr) {
+            console.error('Error clearing cart:', cartErr);
+            // Don't fail the order if cart clearing fails
+        }
 
         // Populate order details
-        await order.populate('items.productId', 'title price images');
+        try {
+            await order.populate('items.productId', 'title price images');
+        } catch (populateErr) {
+            console.error('Error populating order details:', populateErr);
+            // Continue even if population fails
+        }
 
         res.status(201).json({
             success: true,
             data: order
         });
     } catch (error) {
+        console.error('Order creation error:', error);
         res.status(500).json({
             success: false,
-            error: error.message
+            error: error.message || 'An error occurred while creating the order'
         });
     }
 };
@@ -93,7 +158,7 @@ exports.createOrder = async (req, res) => {
 // Get user's orders
 exports.getOrders = async (req, res) => {
     try {
-        const orders = await Order.find({ userId: req.user._id })
+        const orders = await Order.find({ userId: req.user.userId })
             .populate('items.productId', 'title price images')
             .sort('-createdAt');
 
@@ -109,14 +174,25 @@ exports.getOrders = async (req, res) => {
     }
 };
 
-// Get single order
+// Get a single order
 exports.getOrder = async (req, res) => {
     try {
         const { id } = req.params;
 
+        // Check if the id is a valid MongoDB ObjectId
+        const isValidObjectId = mongoose.Types.ObjectId.isValid(id);
+        
+        if (!isValidObjectId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid order ID format'
+            });
+        }
+        
+        // Find by MongoDB _id
         const order = await Order.findOne({
             _id: id,
-            userId: req.user._id
+            userId: req.user.userId
         }).populate('items.productId', 'title price images');
 
         if (!order) {
@@ -138,13 +214,64 @@ exports.getOrder = async (req, res) => {
     }
 };
 
+// Get all orders (admin only)
+exports.getAllOrders = async (req, res) => {
+    try {
+        // Initialize empty query object
+        const query = {};
+        
+        // Support pagination
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        
+        const orders = await Order.find(query)
+            .populate('items.productId', 'title price images')
+            .populate('userId', 'name email')
+            .sort('-createdAt')
+            .skip(skip)
+            .limit(limit);
+            
+        // Get total count for pagination
+        const total = await Order.countDocuments(query);
+
+        res.json({
+            success: true,
+            data: orders,
+            pagination: {
+                total,
+                page,
+                limit,
+                pages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+};
+
 // Update order status (admin only)
 exports.updateOrderStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const { orderStatus, paymentStatus } = req.body;
 
+        // Check if the id is a valid MongoDB ObjectId
+        const isValidObjectId = mongoose.Types.ObjectId.isValid(id);
+        
+        if (!isValidObjectId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid order ID format'
+            });
+        }
+        
+        // Find by MongoDB _id
         const order = await Order.findById(id);
+        
         if (!order) {
             return res.status(404).json({
                 success: false,
@@ -175,9 +302,20 @@ exports.cancelOrder = async (req, res) => {
     try {
         const { id } = req.params;
 
+        // Check if the id is a valid MongoDB ObjectId
+        const isValidObjectId = mongoose.Types.ObjectId.isValid(id);
+        
+        if (!isValidObjectId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid order ID format'
+            });
+        }
+        
+        // Find by MongoDB _id
         const order = await Order.findOne({
             _id: id,
-            userId: req.user._id,
+            userId: req.user.userId,
             orderStatus: { $nin: ['delivered', 'cancelled'] }
         });
 

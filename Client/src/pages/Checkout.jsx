@@ -1,11 +1,13 @@
-import { useState, useContext } from 'react'
+import { useState, useContext, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import Button from '../components/Common/Button'
 import CartContext from '../contexts/CartContext'
-import { useAuth } from '../hooks/useAuth'
+import useAuth from '../hooks/useAuth'
+import api from '../utils/api'
+import { toast } from 'react-toastify'
 
 // Form validation schema
 const schema = yup.object().shape({
@@ -21,21 +23,21 @@ const schema = yup.object().shape({
   paymentMethod: yup.string().required('Payment method is required'),
   cardName: yup.string().when('paymentMethod', {
     is: 'credit-card',
-    then: yup.string().required('Name on card is required'),
+    then: () => yup.string().required('Name on card is required'),
   }),
   cardNumber: yup.string().when('paymentMethod', {
     is: 'credit-card',
-    then: yup.string().required('Card number is required')
+    then: () => yup.string().required('Card number is required')
       .matches(/^[0-9]{16}$/, 'Card number must be 16 digits'),
   }),
   cardExpiry: yup.string().when('paymentMethod', {
     is: 'credit-card',
-    then: yup.string().required('Expiration date is required')
+    then: () => yup.string().required('Expiration date is required')
       .matches(/^(0[1-9]|1[0-2])\/([0-9]{2})$/, 'Expiry date must be in MM/YY format'),
   }),
   cardCvc: yup.string().when('paymentMethod', {
     is: 'credit-card',
-    then: yup.string().required('CVC is required')
+    then: () => yup.string().required('CVC is required')
       .matches(/^[0-9]{3,4}$/, 'CVC must be 3 or 4 digits'),
   }),
   termsAccepted: yup.boolean().oneOf([true], 'You must accept the terms and conditions'),
@@ -48,9 +50,10 @@ const Checkout = () => {
   const navigate = useNavigate()
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [orderId, setOrderId] = useState('')
+  const [isLoadingAddress, setIsLoadingAddress] = useState(false)
   
   // Initialize form with user data if available
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
       firstName: user?.firstName || '',
@@ -67,6 +70,49 @@ const Checkout = () => {
     }
   })
   
+  // Fetch user profile and default address when component mounts
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoadingAddress(true);
+        
+        // Fetch user profile to get complete user details
+        const profileResponse = await api.get('/user/profile');
+        const userData = profileResponse.data.data;
+        
+        // Update form with user profile data
+        if (userData) {
+          setValue('firstName', userData.firstName || userData.name?.split(' ')[0] || '');
+          setValue('lastName', userData.lastName || userData.name?.split(' ')[1] || '');
+          setValue('email', userData.email || '');
+          setValue('phone', userData.phone || '');
+        }
+        
+        // Fetch default address
+        const addressResponse = await api.get('/user/default-address');
+        const defaultAddress = addressResponse.data.data;
+        
+        // Update form with default address if available
+        if (defaultAddress) {
+          setValue('address', defaultAddress.line1 || '');
+          setValue('city', defaultAddress.city || '');
+          setValue('state', defaultAddress.state || '');
+          setValue('zipCode', defaultAddress.zip || '');
+          setValue('country', defaultAddress.country || 'United States');
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        // Don't show error toast as this is a background operation
+      } finally {
+        setIsLoadingAddress(false);
+      }
+    };
+    
+    fetchUserData();
+  }, [user, setValue]);
+  
   // Watch payment method for conditional fields
   const paymentMethod = watch('paymentMethod')
   
@@ -77,19 +123,76 @@ const Checkout = () => {
   const total = subtotal + shippingCost + tax
   
   // Handle form submission
-  const onSubmit = (data) => {
-    // In a real app, this would send the order to an API
-    console.log('Order data:', data)
-    console.log('Cart items:', cartItems)
+  const onSubmit = async (data) => {
+    try {
+      // Format shipping address for API
+      const shippingAddress = {
+        line1: data.address,
+        city: data.city,
+        state: data.state,
+        zip: data.zipCode,
+        country: data.country,
+        name: `${data.firstName} ${data.lastName}`,
+        email: data.email,
+        phone: data.phone
+      };
     
-    // Simulate order processing
-    setTimeout(() => {
-      // Generate a random order ID
-      const randomOrderId = 'ORD-' + Math.random().toString(36).substring(2, 10).toUpperCase()
-      setOrderId(randomOrderId)
-      setOrderPlaced(true)
-      clearCart()
-    }, 1500)
+      // Create order payload
+      const orderPayload = {
+        shippingAddress,
+        paymentMethod: data.paymentMethod,
+        // Include cart items in the payload
+        items: cartItems.map(item => ({
+          productId: item.id || item._id,
+          quantity: item.quantity,
+          price: item.price,
+          size: item.size || null,
+          color: item.color || null
+        })),
+        subtotal,
+        shippingCost,
+        tax,
+        total
+      };
+    
+      // Send order to API
+      const response = await api.post('/orders', orderPayload);
+      
+      // Handle successful order
+      if (response.data.success) {
+        // Set order ID from response
+        setOrderId(response.data.data._id || 'ORD-' + Math.random().toString(36).substring(2, 10).toUpperCase());
+        setOrderPlaced(true);
+        clearCart();
+        toast.success('Order placed successfully!', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        });
+      } else {
+        toast.error('Failed to place order: ' + (response.data.error || 'Unknown error'), {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        });
+      }
+    } catch (error) {
+      console.error('Order error:', error);
+      toast.error('Failed to place order: ' + (error.response?.data?.error || error.message || 'Unknown error'), {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
+      });
+    }
   }
   
   // If cart is empty, redirect to cart page

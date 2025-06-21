@@ -1,5 +1,32 @@
 const mongoose = require('mongoose');
 
+const userCouponSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    email: {
+        type: String,
+        required: true
+    },
+    couponCode: {
+        type: String,
+        required: true
+    },
+    isUsed: {
+        type: Boolean,
+        default: false
+    },
+    usedAt: {
+        type: Date
+    },
+    expiresAt: {
+        type: Date,
+        required: true
+    }
+});
+
 const promotionSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -24,6 +51,13 @@ const promotionSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Promotion image is required']
     },
+    // Promotion type: 'general' for regular promotions, 'coupon' for user-specific coupon codes
+    promotionType: {
+        type: String,
+        enum: ['general', 'coupon'],
+        default: 'general'
+    },
+    // For general promotions
     discountType: {
         type: String,
         enum: ['percentage', 'fixed'],
@@ -78,6 +112,7 @@ const promotionSchema = new mongoose.Schema({
         min: [0, 'Minimum purchase amount cannot be negative'],
         default: 0
     },
+    // For general promotions
     usageLimit: {
         type: Number,
         min: [0, 'Usage limit cannot be negative']
@@ -85,30 +120,41 @@ const promotionSchema = new mongoose.Schema({
     usageCount: {
         type: Number,
         default: 0
-    }
+    },
+    // For coupon promotions
+    couponPrefix: {
+        type: String,
+        trim: true,
+        maxlength: [10, 'Coupon prefix cannot exceed 10 characters']
+    },
+    couponLength: {
+        type: Number,
+        default: 8,
+        min: [4, 'Coupon length must be at least 4 characters'],
+        max: [16, 'Coupon length cannot exceed 16 characters']
+    },
+    couponExpireDays: {
+        type: Number,
+        default: 30,
+        min: [1, 'Coupon expiry must be at least 1 day']
+    },
+    // Store user-specific coupons
+    userCoupons: [userCouponSchema]
 }, {
     timestamps: true
 });
 
-// Create slug from name before saving
-promotionSchema.pre('save', function(next) {
-    if (!this.isModified('name')) return next();
-    this.slug = this.name.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s]+/g, '-');
-    next();
-});
-
-// Also generate slug when only slug is missing
+// Generate slug when only slug is missing or name is modified
 promotionSchema.pre('validate', function(next) {
-    if (!this.slug && this.name) {
+    // If slug is already set manually, respect it
+    if (this.slug && this.isModified('slug')) {
+        return next();
+    }
+    
+    // If name is modified or slug is missing, generate a slug
+    if ((this.isModified('name') || !this.slug) && this.name) {
         this.slug = this.name.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s]+/g, '-');
     }
-    next();
-});
-
-// Create slug from name before saving
-promotionSchema.pre('save', function(next) {
-    if (!this.isModified('name')) return next();
-    this.slug = this.name.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s]+/g, '-');
     next();
 });
 

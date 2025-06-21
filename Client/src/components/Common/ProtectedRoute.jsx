@@ -1,9 +1,8 @@
-import { useContext } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
-import AuthContext from '../../contexts/AuthContext'
+import useAuth from '../../hooks/useAuth'
 
 const ProtectedRoute = ({ adminOnly = false }) => {
-  const { isAuthenticated, isAdmin, loading } = useContext(AuthContext)
+  const { isAuthenticated, isAdmin, loading } = useAuth()
   
   // Show loading state while checking authentication
   if (loading) {

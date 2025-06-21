@@ -31,22 +31,22 @@ const Modal = ({
   // Handle click outside to close modal
   const handleOverlayClick = (e) => {
     if (closeOnOverlayClick && modalRef.current && !modalRef.current.contains(e.target)) {
-      onClose()
+      onClose();
     }
-  }
+  };
   
-  // Prevent scroll on body when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
-    
-    return () => {
-      document.body.style.overflow = 'unset'
-    }
-  }, [isOpen])
+  // Remove the effect that prevents scrolling
+  // useEffect(() => {
+  //   if (isOpen) {
+  //     document.body.style.overflow = 'hidden';
+  //   } else {
+  //     document.body.style.overflow = 'unset';
+  //   }
+  //   
+  //   return () => {
+  //     document.body.style.overflow = 'unset';
+  //   }
+  // }, [isOpen]);
   
   // Size classes for the modal
   const sizeClasses = {
@@ -77,7 +77,7 @@ const Modal = ({
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className={`${sizeClasses[size] || sizeClasses.md} w-full bg-white rounded-lg shadow-xl overflow-hidden`}
+              className={`${sizeClasses[size] || sizeClasses.md} w-full bg-white rounded-lg shadow-xl overflow-auto max-h-[90vh]`}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}

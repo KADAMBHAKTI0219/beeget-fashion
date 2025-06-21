@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Button from '../components/Common/Button'
 import Input from '../components/Common/Input'
+import axios from '../utils/api'
+import { toast } from 'react-hot-toast'
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -20,15 +22,26 @@ const Contact = () => {
     }))
   }
   
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     
-    // In a real app, this would send the form data to an API
-    // For now, we'll just simulate a successful submission
+    // Validate form data
+    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+      toast.error('Please fill all required fields')
+      return
+    }
+    
     setFormStatus('sending')
     
-    setTimeout(() => {
+    try {
+      // Send data to the API
+      const response = await axios.post('/contact', formData)
+      
+      // Handle success
       setFormStatus('success')
+      toast.success('Your message has been sent successfully!')
+      
+      // Reset form
       setFormData({
         name: '',
         email: '',
@@ -40,7 +53,16 @@ const Contact = () => {
       setTimeout(() => {
         setFormStatus(null)
       }, 5000)
-    }, 1500)
+    } catch (error) {
+      // Handle error
+      setFormStatus('error')
+      toast.error(error.response?.data?.error || 'Failed to send message. Please try again.')
+      
+      // Reset error status after 5 seconds
+      setTimeout(() => {
+        setFormStatus(null)
+      }, 5000)
+    }
   }
   
   return (
@@ -167,7 +189,16 @@ const Contact = () => {
           <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100">
             <h2 className="text-2xl font-heading font-semibold mb-6">Send Us a Message</h2>
             
-            {formStatus === 'success' ? (
+            {formStatus === 'error' ? (
+              <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 mb-6">
+                <div className="flex">
+                  <svg className="h-5 w-5 text-red-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p>There was an error sending your message. Please try again.</p>
+                </div>
+              </div>
+            ) : formStatus === 'success' ? (
               <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg p-4 mb-6">
                 <div className="flex">
                   <svg className="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -8,7 +8,7 @@ const { validationResult } = require('express-validator');
  */
 const getAddresses = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('addresses');
+    const user = await User.findById(req.user.userId).select('addresses');
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -38,7 +38,7 @@ const addAddress = async (req, res) => {
   try {
     const { label, line1, city, state, zip, country } = req.body;
     
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.userId);
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -86,7 +86,7 @@ const updateAddress = async (req, res) => {
     const { addressId } = req.params;
     const { label, line1, city, state, zip, country } = req.body;
     
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.userId);
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -135,7 +135,7 @@ const deleteAddress = async (req, res) => {
   try {
     const { addressId } = req.params;
     
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.userId);
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -166,9 +166,60 @@ const deleteAddress = async (req, res) => {
   }
 };
 
+/**
+ * Get user profile
+ * @route GET /api/user/profile
+ * @access Private
+ */
+const getUserProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('-password -refreshToken -resetToken -resetTokenExpiry -emailVerificationToken -emailVerificationTokenExpiry');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+/**
+ * Get default address
+ * @route GET /api/user/default-address
+ * @access Private
+ */
+const getDefaultAddress = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('addresses');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Return the first address as default if any exists
+    const defaultAddress = user.addresses.length > 0 ? user.addresses[0] : null;
+    
+    res.status(200).json({
+      success: true,
+      data: defaultAddress
+    });
+  } catch (error) {
+    console.error('Error fetching default address:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 module.exports = {
   getAddresses,
   addAddress,
   updateAddress,
-  deleteAddress
+  deleteAddress,
+  getUserProfile,
+  getDefaultAddress
 };

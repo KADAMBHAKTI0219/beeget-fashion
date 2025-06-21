@@ -6,17 +6,19 @@ const {
     getOrders,
     getOrder,
     updateOrderStatus,
-    cancelOrder
+    cancelOrder,
+    getAllOrders
 } = require('../controllers/order.controller');
 
 // Protected routes (user only)
 router.use(auth());
 router.post('/', createOrder);
 router.get('/', getOrders);
-router.get('/:id', getOrder);
+router.get('/:id', getOrder); // This now supports both MongoDB ID and orderNumber
 
 // Admin only routes
-router.patch('/:id/status', auth('admin'), updateOrderStatus);
-router.patch('/:id/cancel', cancelOrder);
+router.get('/admin/all', auth('admin'), getAllOrders); // Supports filtering by orderNumber
+router.patch('/:id/status', auth('admin'), updateOrderStatus); // Supports both MongoDB ID and orderNumber
+router.patch('/:id/cancel', cancelOrder); // Supports both MongoDB ID and orderNumber
 
 module.exports = router;

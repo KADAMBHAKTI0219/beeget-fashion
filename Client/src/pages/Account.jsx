@@ -1,7 +1,13 @@
-import { useState } from 'react'
-import { Link, Outlet, useLocation, Navigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useLocation, Navigate } from 'react-router-dom'
 import useAuth from '../hooks/useAuth'
 import Button from '../components/Common/Button'
+import AccountOrders from './AccountOrders'
+import AccountWishlist from './AccountWishlist'
+import AccountAddresses from './AccountAddresses'
+import AccountSettings from './AccountSettings'
+import api from '../utils/api'
+import { useQuery } from '@tanstack/react-query'
 
 const Account = () => {
   const { user, logout } = useAuth()
@@ -9,12 +15,56 @@ const Account = () => {
   const [activeTab, setActiveTab] = useState(() => {
     // Set active tab based on current path
     const path = location.pathname
-    if (path.includes('/orders')) return 'orders'
-    if (path.includes('/wishlist')) return 'wishlist'
-    if (path.includes('/addresses')) return 'addresses'
-    if (path.includes('/settings')) return 'settings'
+    if (path.includes('/account/orders')) return 'orders'
+    if (path.includes('/account/wishlist')) return 'wishlist'
+    if (path.includes('/account/addresses')) return 'addresses'
+    if (path.includes('/account/settings')) return 'settings'
     return 'profile' // Default tab
   })
+  
+  // Update browser URL without navigation when tab changes
+  useEffect(() => {
+    if (activeTab === 'profile') {
+      window.history.replaceState(null, '', '/account')
+    } else {
+      window.history.replaceState(null, '', `/account/${activeTab}`)
+    }
+  }, [activeTab])
+  
+  // Fetch user profile data using React Query
+  const { data: userProfile, isLoading } = useQuery(
+    ['user-profile'],
+    async () => {
+      const response = await api.get('/user/profile')
+      return response.data.data
+    },
+    {
+      enabled: !!user,
+      onError: (error) => {
+        console.error('Error fetching user profile:', error)
+      },
+      staleTime: 300000, // 5 minutes
+      refetchOnWindowFocus: false
+    }
+  )
+
+  // Fetch orders count using React Query
+  const { data: ordersData } = useQuery(
+    ['orders-count'],
+    async () => {
+      const response = await api.get('/orders');
+      return response.data.data;
+    },
+    {
+      enabled: !!user,
+      onError: (error) => {
+        console.error('Error fetching orders:', error);
+      }
+    }
+  );
+
+  // Get orders count
+  const ordersCount = ordersData?.length || 0;
   
   // If user is not logged in, redirect to login page
   if (!user) {
@@ -34,11 +84,14 @@ const Account = () => {
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center space-x-4">
                   <div className="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 text-xl font-semibold">
-                    {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                    {userProfile?.firstName?.charAt(0) || user?.name?.split(' ')[0]?.charAt(0) || ''}
+                    {userProfile?.lastName?.charAt(0) || user?.name?.split(' ')[1]?.charAt(0) || ''}
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold">{user.firstName} {user.lastName}</h2>
-                    <p className="text-gray-600 text-sm">{user.email}</p>
+                    <h2 className="text-lg font-semibold">
+                      {userProfile?.firstName || user?.name?.split(' ')[0] || ''} {userProfile?.lastName || user?.name?.split(' ')[1] || ''}
+                    </h2>
+                    <p className="text-gray-600 text-sm">{userProfile?.email || user?.email || ''}</p>
                   </div>
                 </div>
               </div>
@@ -47,9 +100,8 @@ const Account = () => {
               <nav className="p-2">
                 <ul className="space-y-1">
                   <li>
-                    <Link 
-                      to="/account" 
-                      className={`block px-4 py-2 rounded-md ${activeTab === 'profile' ? 'bg-teal-50 text-teal-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                    <button 
+                      className={`block w-full text-left px-4 py-2 rounded-md ${activeTab === 'profile' ? 'bg-teal-50 text-teal-700' : 'text-gray-700 hover:bg-gray-50'}`}
                       onClick={() => setActiveTab('profile')}
                     >
                       <div className="flex items-center">
@@ -58,12 +110,11 @@ const Account = () => {
                         </svg>
                         Profile
                       </div>
-                    </Link>
+                    </button>
                   </li>
                   <li>
-                    <Link 
-                      to="/account/orders" 
-                      className={`block px-4 py-2 rounded-md ${activeTab === 'orders' ? 'bg-teal-50 text-teal-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                    <button 
+                      className={`block w-full text-left px-4 py-2 rounded-md ${activeTab === 'orders' ? 'bg-teal-50 text-teal-700' : 'text-gray-700 hover:bg-gray-50'}`}
                       onClick={() => setActiveTab('orders')}
                     >
                       <div className="flex items-center">
@@ -72,12 +123,11 @@ const Account = () => {
                         </svg>
                         Orders
                       </div>
-                    </Link>
+                    </button>
                   </li>
                   <li>
-                    <Link 
-                      to="/account/wishlist" 
-                      className={`block px-4 py-2 rounded-md ${activeTab === 'wishlist' ? 'bg-teal-50 text-teal-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                    <button 
+                      className={`block w-full text-left px-4 py-2 rounded-md ${activeTab === 'wishlist' ? 'bg-teal-50 text-teal-700' : 'text-gray-700 hover:bg-gray-50'}`}
                       onClick={() => setActiveTab('wishlist')}
                     >
                       <div className="flex items-center">
@@ -86,12 +136,11 @@ const Account = () => {
                         </svg>
                         Wishlist
                       </div>
-                    </Link>
+                    </button>
                   </li>
                   <li>
-                    <Link 
-                      to="/account/addresses" 
-                      className={`block px-4 py-2 rounded-md ${activeTab === 'addresses' ? 'bg-teal-50 text-teal-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                    <button 
+                      className={`block w-full text-left px-4 py-2 rounded-md ${activeTab === 'addresses' ? 'bg-teal-50 text-teal-700' : 'text-gray-700 hover:bg-gray-50'}`}
                       onClick={() => setActiveTab('addresses')}
                     >
                       <div className="flex items-center">
@@ -101,12 +150,11 @@ const Account = () => {
                         </svg>
                         Addresses
                       </div>
-                    </Link>
+                    </button>
                   </li>
                   <li>
-                    <Link 
-                      to="/account/settings" 
-                      className={`block px-4 py-2 rounded-md ${activeTab === 'settings' ? 'bg-teal-50 text-teal-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                    <button 
+                      className={`block w-full text-left px-4 py-2 rounded-md ${activeTab === 'settings' ? 'bg-teal-50 text-teal-700' : 'text-gray-700 hover:bg-gray-50'}`}
                       onClick={() => setActiveTab('settings')}
                     >
                       <div className="flex items-center">
@@ -116,7 +164,7 @@ const Account = () => {
                         </svg>
                         Settings
                       </div>
-                    </Link>
+                    </button>
                   </li>
                 </ul>
               </nav>
@@ -140,33 +188,38 @@ const Account = () => {
           {/* Content Area */}
           <div className="lg:col-span-3">
             <div className="bg-white rounded-lg shadow-sm p-6">
-              {/* Outlet for nested routes */}
-              <Outlet />
-              
-              {/* Default content if no nested route is matched */}
-              {location.pathname === '/account' && (
+              {/* Tab content */}
+              {activeTab === 'profile' && (
                 <div>
                   <h2 className="text-xl font-semibold mb-6">Profile Information</h2>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <h3 className="text-sm font-medium text-gray-500 mb-1">First Name</h3>
-                      <p className="text-gray-800">{user.firstName || 'Not provided'}</p>
+                      <p className="text-gray-800">
+                        {isLoading ? 'Loading...' : (userProfile?.firstName || user?.firstName || user?.name?.split(' ')[0] || 'Not provided')}
+                      </p>
                     </div>
                     
                     <div>
                       <h3 className="text-sm font-medium text-gray-500 mb-1">Last Name</h3>
-                      <p className="text-gray-800">{user.lastName || 'Not provided'}</p>
+                      <p className="text-gray-800">
+                        {isLoading ? 'Loading...' : (userProfile?.lastName || user?.lastName || user?.name?.split(' ')[1] || 'Not provided')}
+                      </p>
                     </div>
                     
                     <div>
                       <h3 className="text-sm font-medium text-gray-500 mb-1">Email Address</h3>
-                      <p className="text-gray-800">{user.email}</p>
+                      <p className="text-gray-800">
+                        {isLoading ? 'Loading...' : (userProfile?.email || user?.email || 'Not provided')}
+                      </p>
                     </div>
                     
                     <div>
                       <h3 className="text-sm font-medium text-gray-500 mb-1">Phone Number</h3>
-                      <p className="text-gray-800">{user.phone || 'Not provided'}</p>
+                      <p className="text-gray-800">
+                        {isLoading ? 'Loading...' : (userProfile?.phone || user?.phone || 'Not provided')}
+                      </p>
                     </div>
                   </div>
                   
@@ -181,12 +234,10 @@ const Account = () => {
                           </svg>
                           <h3 className="font-medium">Orders</h3>
                         </div>
-                        <p className="text-2xl font-semibold">0</p>
-                        <Link to="/account/orders" className="text-sm text-teal-600 hover:text-teal-800 mt-2 inline-block">
-                          View Orders →
-                        </Link>
+                        <p className="text-2xl font-semibold">{ordersCount}</p>
+                       
                       </div>
-                      
+                        
                       <div className="bg-gray-50 p-4 rounded-lg">
                         <div className="flex items-center mb-2">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-teal-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -195,9 +246,7 @@ const Account = () => {
                           <h3 className="font-medium">Wishlist</h3>
                         </div>
                         <p className="text-2xl font-semibold">0</p>
-                        <Link to="/account/wishlist" className="text-sm text-teal-600 hover:text-teal-800 mt-2 inline-block">
-                          View Wishlist →
-                        </Link>
+                        
                       </div>
                       
                       <div className="bg-gray-50 p-4 rounded-lg">
@@ -209,21 +258,31 @@ const Account = () => {
                           <h3 className="font-medium">Addresses</h3>
                         </div>
                         <p className="text-2xl font-semibold">0</p>
-                        <Link to="/account/addresses" className="text-sm text-teal-600 hover:text-teal-800 mt-2 inline-block">
-                          Manage Addresses →
-                        </Link>
+                       
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="mt-8 pt-6 border-t border-gray-200">
-                    <Link to="/account/settings">
-                      <Button>
-                        Edit Profile
-                      </Button>
-                    </Link>
-                  </div>
                 </div>
+              )}
+              
+              {/* Orders tab */}
+              {activeTab === 'orders' && (
+                <AccountOrders />
+              )}
+              
+              {/* Wishlist tab */}
+              {activeTab === 'wishlist' && (
+                <AccountWishlist />
+              )}
+              
+              {/* Addresses tab */}
+              {activeTab === 'addresses' && (
+                <AccountAddresses />
+              )}
+              
+              {/* Settings tab */}
+              {activeTab === 'settings' && (
+                <AccountSettings />
               )}
             </div>
           </div>

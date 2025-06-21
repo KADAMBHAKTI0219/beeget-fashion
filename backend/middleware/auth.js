@@ -16,13 +16,25 @@ const auth = (requiredRole) => async (req, res, next) => {
         if (!user) {
             return res.status(401).json({ message: 'Invalid token' });
         }
-
-        // पहले:
-        req.user = user;
         
-        // अब:
-        // Set user ID in request object
-        req.user = { userId: decoded.userId };
+        // Check if user is banned
+        if (user.isBanned) {
+            return res.status(403).json({
+                success: false,
+                message: 'Your account has been banned',
+                reason: user.banReason || 'Contact administrator for more information',
+                isBanned: true
+            });
+        }
+
+        // Set user ID and role in request object
+        // Make sure we include both userId and id for backward compatibility
+        req.user = { 
+            userId: decoded.userId, 
+            id: decoded.userId, // Add id for backward compatibility
+            _id: decoded.userId, // Add _id for backward compatibility with existing code
+            role: user.role 
+        };
 
         if (requiredRole && user.role !== requiredRole) {
             return res.status(403).json({

@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 
+// No counter schema needed anymore
+
 const orderItemSchema = new mongoose.Schema({
     productId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -48,6 +50,11 @@ const orderSchema = new mongoose.Schema({
             required: [true, 'Country is required']
         }
     },
+    paymentMethod: {
+        type: String,
+        enum: ['credit-card', 'paypal'],
+        required: [true, 'Payment method is required']
+    },
     paymentStatus: {
         type: String,
         enum: ['pending', 'paid', 'failed'],
@@ -71,5 +78,9 @@ const orderSchema = new mongoose.Schema({
 orderSchema.index({ userId: 1 });
 orderSchema.index({ orderStatus: 1 });
 orderSchema.index({ createdAt: -1 });
+
+// Using MongoDB's default _id instead of custom orderNumber
+
+// No custom order number generation needed - using MongoDB's default _id
 
 module.exports = mongoose.model('Order', orderSchema);

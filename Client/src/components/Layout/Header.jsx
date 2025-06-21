@@ -1,5 +1,5 @@
 import { useState, useContext, useEffect } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { ShoppingBagIcon, UserIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 import AuthContext from '../../contexts/AuthContext'
 import CartContext from '../../contexts/CartContext'
@@ -12,6 +12,7 @@ const Header = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const { isAuthenticated, isAdmin, user, logout } = useContext(AuthContext)
   const { cart, getCartItemCount } = useContext(CartContext)
+  const navigate = useNavigate()
   
   // Toggle mobile menu
   const toggleMobileMenu = () => {
@@ -121,17 +122,11 @@ const Header = () => {
                 {/* Dropdown Menu */}
                 <div className={`absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 ${dropdownOpen ? 'block' : 'hidden'}`}>
                   <Link 
-                    to="/account/profile" 
+                    to="/account" 
                     className="block px-4 py-2 text-sm text-java-800 hover:bg-java-50"
                   >
                     My Profile
-                  </Link>
-                  <Link 
-                    to="/account/orders" 
-                    className="block px-4 py-2 text-sm text-java-800 hover:bg-java-50"
-                  >
-                    My Orders
-                  </Link>
+                  </Link>                
                   {isAdmin && (
                     <Link 
                       to="/admin/dashboard" 
@@ -244,6 +239,15 @@ const Header = () => {
                     onClick={closeMobileMenu}
                   >
                     My Orders
+                  </NavLink>
+                  <NavLink 
+                    to="/account/wishlist" 
+                    className={({ isActive }) => 
+                      isActive ? 'text-java-400 font-medium' : 'text-java-800 hover:text-java-400 transition-colors'
+                    }
+                    onClick={closeMobileMenu}
+                  >
+                    My Wishlist
                   </NavLink>
                   {isAdmin && (
                     <NavLink 

@@ -8,8 +8,15 @@ export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   
-  // Initialize cart from localStorage
+  // Check if user is authenticated
+  useEffect(() => {
+    const tokens = localStorage.getItem('tokens')
+    setIsAuthenticated(!!tokens)
+  }, [])
+  
+  // First, try to load cart from localStorage on initial render
   useEffect(() => {
     const storedCart = localStorage.getItem('cart')
     if (storedCart) {
@@ -21,99 +28,429 @@ export const CartProvider = ({ children }) => {
         localStorage.removeItem('cart')
       }
     }
-  }, [])
+  }, []) // Run only once on component mount
+  
+  // Then, fetch cart from backend if user is authenticated
+  useEffect(() => {
+    const fetchCartFromBackend = async () => {
+      console.log('Authentication status:', isAuthenticated ? 'Authenticated' : 'Not authenticated')
+      if (!isAuthenticated) {
+        console.log('Not fetching cart because user is not authenticated')
+        return
+      }
+      
+      // Check if token exists in localStorage
+      const tokens = localStorage.getItem('tokens')
+      console.log('Tokens in localStorage:', tokens ? 'Present' : 'Not present')
+      
+      try {
+        setLoading(true)
+        console.log('Attempting to fetch cart from backend...')
+        const response = await axios.get('/cart')
+        console.log('Cart fetch successful:', response.data)
+        if (response.data.success) {
+          // Transform backend cart format to frontend format
+          const backendCart = response.data.data.items.map(item => ({
+            id: item.productId._id,
+            _id: item.productId._id,
+            name: item.productId.title,
+            title: item.productId.title,
+            price: item.productId.price,
+            image: item.productId.images && item.productId.images.length > 0 ? item.productId.images[0] : null,
+            quantity: item.quantity,
+            addedAt: new Date().toISOString()
+          }))
+          setCart(backendCart)
+          // Update localStorage with backend cart
+          localStorage.setItem('cart', JSON.stringify(backendCart))
+        }
+      } catch (err) {
+        console.error('Error fetching cart from backend:', err)
+        console.log('Error status:', err.response?.status)
+        console.log('Error message:', err.response?.data)
+        // We already loaded from localStorage, so no need to do it again here
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchCartFromBackend()
+  }, [isAuthenticated]) // Only run when authentication status changes
   
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cart))
+    if (cart.length > 0) {
+      localStorage.setItem('cart', JSON.stringify(cart))
+    }
   }, [cart])
   
-  // Add item to cart
-  const addToCart = (product, quantity = 1, size = null, color = null) => {
-    setCart(prevCart => {
-      // Check if product already exists in cart
-      const existingItemIndex = prevCart.findIndex(
-        item => item.id === product.id && 
-               (size ? item.size === size : true) && 
-               (color ? item.color === color : true)
+  // Add to cart
+  const addToCart = async (product, quantity = 1, size = null, color = null) => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Ensure quantity is a valid number
+      const parsedQuantity = parseInt(quantity, 10)
+      if (isNaN(parsedQuantity) || parsedQuantity < 1) {
+        quantity = 1 // Set to default valid quantity
+      } else {
+        quantity = parsedQuantity
+      }
+      
+      // Check if the product is already in the cart with the same size and color
+      const existingItemIndex = cart.findIndex(item => 
+        (item.id === product.id || item._id === product._id) && 
+        (size ? item.size === size : true) && 
+        (color ? item.color === color : true)
       )
       
       if (existingItemIndex !== -1) {
-        // Update quantity of existing item
-        const updatedCart = [...prevCart]
-        updatedCart[existingItemIndex] = {
-          ...updatedCart[existingItemIndex],
-          quantity: updatedCart[existingItemIndex].quantity + quantity
-        }
-        toast.success(`${product.name} quantity updated in cart!`, {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true
-        })
-        return updatedCart
-      } else {
-        // Add new item to cart
-        toast.success(`${product.name} added to cart!`, {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true
-        })
-        return [...prevCart, {
-          ...product,
+        // If product exists, update quantity instead of adding new item
+        const newQuantity = cart[existingItemIndex].quantity + quantity
+        return updateQuantity(product.id || product._id, newQuantity, size, color)
+      }
+      
+      // Prepare the product object with additional properties
+      const productToAdd = {
+        ...product,
+        quantity,
+        size,
+        color,
+        addedAt: new Date().toISOString()
+      }
+      
+      if (isAuthenticated) {
+        // For authenticated users, add to backend
+        const response = await axios.post('/cart', {
+          productId: product.id || product._id,
           quantity,
           size,
-          color,
-          addedAt: new Date().toISOString()
-        }]
-      }
-    })
-  }
-  
-  // Remove item from cart
-  const removeFromCart = (itemId, size = null, color = null) => {
-    setCart(prevCart => 
-      prevCart.filter(item => 
-        !(item.id === itemId && 
-          (size ? item.size === size : true) && 
-          (color ? item.color === color : true))
-      )
-    )
-  }
-  
-  // Update item quantity
-  const updateQuantity = (itemId, quantity, size = null, color = null) => {
-    if (quantity <= 0) {
-      removeFromCart(itemId, size, color)
-      return
-    }
-    
-    setCart(prevCart => {
-      return prevCart.map(item => {
-        if (item.id === itemId && 
-            (size ? item.size === size : true) && 
-            (color ? item.color === color : true)) {
-          return { ...item, quantity }
+          color
+        })
+        
+        if (response.data.success) {
+          // Transform backend cart format to frontend format
+          const backendCart = response.data.data.items.map(item => ({
+            id: item.productId._id,
+            _id: item._id, // Store the cart item ID for future operations
+            name: item.productId.title,
+            title: item.productId.title,
+            price: item.productId.price,
+            image: item.productId.images && item.productId.images.length > 0 ? item.productId.images[0] : null,
+            quantity: item.quantity,
+            size: item.size || null,
+            color: item.color || null,
+            addedAt: new Date().toISOString()
+          }))
+          
+          // Update state and localStorage in one place
+          setCart(backendCart)
+          localStorage.setItem('cart', JSON.stringify(backendCart))
         }
-        return item
+      } else {
+        // For non-authenticated users, use localStorage only
+        const newCart = [...cart, productToAdd]
+        
+        // Update state and localStorage in one place
+        setCart(newCart)
+        localStorage.setItem('cart', JSON.stringify(newCart))
+      }
+      
+      toast.success('Added to cart!', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
       })
-    })
+      
+      // Dispatch custom event to open cart sidebar
+      const event = new CustomEvent('openCartSidebar')
+      window.dispatchEvent(event)
+      
+    } catch (error) {
+      console.error('Error adding to cart:', error)
+      setError(error.message || 'Failed to add to cart')
+      toast.error('Failed to add to cart. Please try again.', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+  // Remove from cart
+  const removeFromCart = async (itemId, size = null, color = null) => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      if (isAuthenticated) {
+        // For authenticated users, remove from backend
+        // First find the cart item that matches the criteria
+        const cartItem = cart.find(item => 
+          (item.id === itemId || item._id === itemId) && 
+          (size ? item.size === size : true) && 
+          (color ? item.color === color : true)
+        )
+        
+        if (cartItem) {
+          // For backend, we need the cart item ID, not the product ID
+          const response = await axios.delete(`/cart/${cartItem._id}`)
+          
+          if (response.data.success) {
+            // Transform backend cart format to frontend format
+            const backendCart = response.data.data.items.map(item => ({
+              id: item.productId._id,
+              _id: item._id, // Store the cart item ID for future operations
+              name: item.productId.title,
+              title: item.productId.title,
+              price: item.productId.price,
+              image: item.productId.images && item.productId.images.length > 0 ? item.productId.images[0] : null,
+              quantity: item.quantity,
+              size: item.size || null,
+              color: item.color || null,
+              addedAt: new Date().toISOString()
+            }))
+            
+            // Update state and localStorage in one place
+            setCart(backendCart)
+            localStorage.setItem('cart', JSON.stringify(backendCart))
+            
+            toast.success('Item removed from cart!', {
+              position: "top-right",
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true
+            })
+          }
+        } else {
+          throw new Error('Cart item not found')
+        }
+      } else {
+        // For non-authenticated users, use localStorage only
+        // Fix the filter logic to correctly remove items
+        const filteredCart = cart.filter(item => 
+          !((item.id === itemId || item._id === itemId) && 
+            (!size || item.size === size) && 
+            (!color || item.color === color))
+        )
+        
+        // Update state and localStorage in one place
+        setCart(filteredCart)
+        localStorage.setItem('cart', JSON.stringify(filteredCart))
+        
+        toast.success('Item removed from cart!', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+      }
+    } catch (error) {
+      console.error('Error removing from cart:', error)
+      setError(error.message || 'Failed to remove item from cart')
+      toast.error('Failed to remove item from cart. Please try again.', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+  // Update quantity
+  const updateQuantity = async (itemId, quantity, size = null, color = null) => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Ensure quantity is a valid number
+      const parsedQuantity = parseInt(quantity, 10)
+      
+      // If quantity is invalid, set to 1
+      if (isNaN(parsedQuantity) || parsedQuantity < 1) {
+        // If quantity is 0 or less, remove the item
+        if (parsedQuantity <= 0) {
+          return removeFromCart(itemId, size, color)
+        }
+        // Otherwise set to minimum valid quantity
+        quantity = 1
+      } else {
+        // Use the parsed quantity
+        quantity = parsedQuantity
+      }
+      
+      if (isAuthenticated) {
+        // For authenticated users, update on backend
+        // First find the cart item that matches the criteria
+        const cartItem = cart.find(item => 
+          (item.id === itemId || item._id === itemId) && 
+          (size ? item.size === size : true) && 
+          (color ? item.color === color : true)
+        )
+        
+        if (cartItem) {
+          // For backend, we need the cart item ID, not the product ID
+          // cartItem._id should be the cart item ID from the backend
+          const response = await axios.patch(`/cart/${cartItem._id}`, { quantity })
+          
+          if (response.data.success) {
+            // Transform backend cart format to frontend format
+            const backendCart = response.data.data.items.map(item => ({
+              id: item.productId._id,
+              _id: item._id, // Store the cart item ID for future operations
+              name: item.productId.title,
+              title: item.productId.title,
+              price: item.productId.price,
+              image: item.productId.images && item.productId.images.length > 0 ? item.productId.images[0] : null,
+              quantity: item.quantity,
+              size: item.size || null,
+              color: item.color || null,
+              addedAt: new Date().toISOString()
+            }))
+            
+            // Update state and localStorage in one place
+            setCart(backendCart)
+            localStorage.setItem('cart', JSON.stringify(backendCart))
+            
+            toast.success('Cart updated!', {
+              position: "top-right",
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true
+            })
+          }
+        } else {
+          throw new Error('Cart item not found')
+        }
+      } else {
+        // For non-authenticated users, use localStorage only
+        const updatedCart = cart.map(item => {
+          if ((item.id === itemId || item._id === itemId) && 
+              (size ? item.size === size : true) && 
+              (color ? item.color === color : true)) {
+            return { ...item, quantity }
+          }
+          return item
+        })
+        
+        // Update state and localStorage in one place
+        setCart(updatedCart)
+        localStorage.setItem('cart', JSON.stringify(updatedCart))
+        
+        toast.success('Cart updated!', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+      }
+    } catch (error) {
+      console.error('Error updating cart:', error)
+      setError(error.message || 'Failed to update cart')
+      toast.error('Failed to update cart. Please try again.', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
+      })
+    } finally {
+      setLoading(false)
+    }
   }
   
   // Clear cart
-  const clearCart = () => {
-    setCart([])
+  const clearCart = async () => {
+    try {
+          setError(null)
+      
+      if (isAuthenticated) {
+        // For authenticated users, make a single API call to clear all items
+        // This requires a backend endpoint that can clear the entire cart
+        // If such endpoint doesn't exist, we can use a more efficient approach
+        
+        // Option 1: If there's a dedicated clear cart endpoint
+        try {
+          // Assuming there's an endpoint to clear the entire cart
+          // If this endpoint doesn't exist, this will throw an error and we'll use Option 2
+          const response = await axios.delete('/cart')
+          if (response.data.success) {
+            setCart([])
+            localStorage.removeItem('cart')
+          }
+        } catch (clearError) {
+          console.log('No clear cart endpoint, removing items individually')
+          // Option 2: More efficient individual removal
+          // Instead of awaiting each removal, we can use Promise.all to remove items in parallel
+          const removalPromises = cart.map(item => 
+            axios.delete(`/cart/${item._id}`).catch(e => console.error(`Failed to remove item ${item._id}:`, e))
+          )
+          
+          // Wait for all removals to complete
+          await Promise.all(removalPromises)
+          setCart([])
+          localStorage.removeItem('cart')
+        }
+      } else {
+        // For non-authenticated users, simply clear localStorage
+        localStorage.removeItem('cart')
+        setCart([])
+      }
+      
+      toast.success('Cart cleared!', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
+      })
+    } catch (error) {
+      console.error('Error clearing cart:', error)
+      setError(error.message || 'Failed to clear cart')
+      toast.error('Failed to clear cart. Please try again.', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
+      })
+    } finally {
+      setLoading(false)
+    }
   }
   
   // Get cart total
   const getCartTotal = () => {
     return cart.reduce((total, item) => {
-      return total + (item.price * item.quantity)
+      // Ensure price is a number
+      const price = typeof item.price === 'number' ? item.price : parseFloat(item.price) || 0
+      // Ensure quantity is a number
+      const quantity = typeof item.quantity === 'number' ? item.quantity : parseInt(item.quantity) || 0
+      return total + (price * quantity)
     }, 0)
   }
   
@@ -128,31 +465,62 @@ export const CartProvider = ({ children }) => {
       setLoading(true)
       setError(null)
       
-      // In a real app, this would be an API call
-      // For now, we'll simulate a successful checkout with mock data
-      // const response = await axios.post('/orders', { ...orderData, items: cart })
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      // Mock response data
-      const mockResponse = {
-        data: {
-          orderId: `ORD-${Date.now()}`,
-          status: 'confirmed',
-          total: getCartTotal(),
-          items: [...cart]
-        }
+      // Check if cart is empty
+      if (cart.length === 0) {
+        setError('Your cart is empty. Please add items to your cart before checkout.')
+        toast.error('Your cart is empty. Please add items to your cart before checkout.', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+        return { success: false, error: 'Cart is empty' }
       }
       
-      // Clear cart after successful checkout
-      clearCart()
+      // Make a real API call to create an order
+      const response = await axios.post('/orders', { 
+        ...orderData, 
+        items: cart.map(item => ({
+          productId: item.id || item._id,
+          quantity: item.quantity,
+          price: item.price,
+          size: item.size || null,
+          color: item.color || null
+        }))
+      })
       
-      return { success: true, data: mockResponse.data }
+      if (response.data.success) {
+        // Clear cart after successful checkout
+        await clearCart()
+        
+        toast.success('Order placed successfully!', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+        
+        return { success: true, data: response.data.data }
+      } else {
+        throw new Error(response.data.error || 'Failed to complete checkout')
+      }
     } catch (err) {
       console.error('Checkout error:', err)
-      setError(err.response?.data?.message || 'Failed to complete checkout. Please try again.')
-      return { success: false, error: err.response?.data?.message || 'Failed to complete checkout' }
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to complete checkout. Please try again.'
+      setError(errorMessage)
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
+      })
+      return { success: false, error: errorMessage }
     } finally {
       setLoading(false)
     }

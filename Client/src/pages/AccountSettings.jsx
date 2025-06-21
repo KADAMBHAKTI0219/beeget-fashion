@@ -2,13 +2,18 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
+import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import useAuth from '../hooks/useAuth'
 import Input from '../components/Common/Input'
 import Button from '../components/Common/Button'
 
 // Validation schema for profile update
 const profileSchema = yup.object({
-  name: yup.string().required('Name is required'),
+  firstName: yup.string().required('First name is required'),
+  lastName: yup.string().required('Last name is required'),
+  email: yup.string().email('Invalid email format').required('Email is required'),
+  phone: yup.string().nullable(),
 }).required()
 
 // Validation schema for password change
@@ -30,6 +35,8 @@ const passwordSchema = yup.object({
 
 const AccountSettings = () => {
   const { user, updateProfile } = useAuth()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState('profile')
   const [updateStatus, setUpdateStatus] = useState({
     loading: false,
@@ -41,7 +48,10 @@ const AccountSettings = () => {
   const profileForm = useForm({
     resolver: yupResolver(profileSchema),
     defaultValues: {
-      name: user?.name || '',
+      firstName: user?.firstName || user?.name?.split(' ')[0] || '',
+      lastName: user?.lastName || user?.name?.split(' ')[1] || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
     }
   })
   
@@ -71,13 +81,21 @@ const AccountSettings = () => {
         
         // Reset form with new values
         profileForm.reset({
-          name: user?.name || '',
+          firstName: user?.firstName || user?.name?.split(' ')[0] || '',
+          lastName: user?.lastName || user?.name?.split(' ')[1] || '',
+          email: user?.email || '',
+          phone: user?.phone || '',
         })
         
-        // Clear success message after 3 seconds
+        // Invalidate user profile query to refresh data
+        queryClient.invalidateQueries(['user-profile'])
+        
+        // Show success message briefly
         setTimeout(() => {
+          // Redirect to profile page and clear success message
           setUpdateStatus(prev => ({ ...prev, success: false }))
-        }, 3000)
+          navigate('/account')
+        }, 1500)
       } else {
         setUpdateStatus({
           loading: false,
@@ -119,10 +137,12 @@ const AccountSettings = () => {
           confirmPassword: ''
         })
         
-        // Clear success message after 3 seconds
+        // Show success message briefly
         setTimeout(() => {
+          // Redirect to profile page and clear success message
           setUpdateStatus(prev => ({ ...prev, success: false }))
-        }, 3000)
+          navigate('/account')
+        }, 1500)
       } else {
         setUpdateStatus({
           loading: false,
@@ -178,11 +198,35 @@ const AccountSettings = () => {
       {/* Profile Information Form */}
       {activeTab === 'profile' && (
         <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="space-y-6 max-w-md">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="First Name"
+              placeholder="Your first name"
+              error={profileForm.formState.errors.firstName?.message}
+              {...profileForm.register('firstName')}
+            />
+            
+            <Input
+              label="Last Name"
+              placeholder="Your last name"
+              error={profileForm.formState.errors.lastName?.message}
+              {...profileForm.register('lastName')}
+            />
+          </div>
+          
           <Input
-            label="Name"
-            placeholder="Your full name"
-            error={profileForm.formState.errors.name?.message}
-            {...profileForm.register('name')}
+            label="Email Address"
+            type="email"
+            placeholder="Your email address"
+            error={profileForm.formState.errors.email?.message}
+            {...profileForm.register('email')}
+          />
+          
+          <Input
+            label="Phone Number (Optional)"
+            placeholder="Your phone number"
+            error={profileForm.formState.errors.phone?.message}
+            {...profileForm.register('phone')}
           />
           
           <Button

@@ -113,6 +113,15 @@ const login = async (req, res) => {
                 email: user.email
             });
         }
+        
+        // Check if user is banned
+        if (user.isBanned) {
+            return res.status(403).json({
+                message: 'Your account has been banned',
+                reason: user.banReason || 'Contact administrator for more information',
+                isBanned: true
+            });
+        }
 
         // Verify password
         const isValidPassword = await bcrypt.compare(password, user.password);
@@ -135,6 +144,7 @@ const login = async (req, res) => {
         res.json({
             message: 'Login successful',
             isEmailVerified: user.isEmailVerified,
+            role: user.role,
             accessToken,
             refreshToken
         });

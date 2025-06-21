@@ -1,8 +1,42 @@
-import AdminDashboard from '../components/Admin/AdminDashboard'
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from '../../utils/api';
+import ProductManagement from './ProductManagement';
+import CategoryManagement from './CategoryManagement';
+import CollectionManagement from './CollectionManagement';
+import CustomerManagement from './CustomerManagement';
+import ContactManagement from './ContactManagement';
+import NotificationManagement from './NotificationManagement';
+import CmsManagement from './CmsManagement';
+import Button from '../Common/Button';
+import { toast } from 'react-hot-toast';
+import Modal from '../Common/Modal';
 
-const AdminDashboardPage = () => {
-  return <AdminDashboard />;
+const AdminDashboard = () => {
+  const [activeTab, setActiveTab] = useState('products');
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [unreadContactCount, setUnreadContactCount] = useState(0);
   
+  // Fetch unread contact messages count
+  useQuery(
+    ['unread-contacts-count'],
+    async () => {
+      try {
+        const response = await axios.get('/contact?status=new&limit=1');
+        setUnreadContactCount(response.data.pagination?.total || 0);
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching unread contacts count:', error);
+        return { total: 0 };
+      }
+    },
+    {
+      refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+      refetchOnWindowFocus: true
+    }
+  );
+
   // Fetch dashboard stats with React Query
   const { data: stats, isLoading: statsLoading } = useQuery(
     ['admin-stats'],
@@ -17,7 +51,7 @@ const AdminDashboardPage = () => {
         const topProducts = topProductsResponse.data.data || [];
         
         // Get recent orders
-        const ordersResponse = await axios.get('/orders?limit=5');
+        const ordersResponse = await axios.get('/orders/admin/all?limit=5');
         const recentOrders = ordersResponse.data.data || [];
         
         // Calculate total sales and orders count from orders data
@@ -77,7 +111,7 @@ const AdminDashboardPage = () => {
       }
     },
     {
-      enabled: activeTab === 'products',
+      enabled: activeTab === 'products' || activeTab === 'overview',
       staleTime: 2 * 60 * 1000, // 2 minutes
     }
   );
@@ -87,7 +121,7 @@ const AdminDashboardPage = () => {
     ['admin-orders'],
     async () => {
       try {
-        const response = await axios.get('/orders?limit=10');
+        const response = await axios.get('/orders/admin/all?limit=10');
         return response.data;
       } catch (error) {
         console.error('Error fetching orders:', error);
@@ -95,11 +129,59 @@ const AdminDashboardPage = () => {
       }
     },
     {
-      enabled: activeTab === 'orders',
+      enabled: activeTab === 'orders' || activeTab === 'overview',
       staleTime: 2 * 60 * 1000, // 2 minutes
     }
   );
-  
+
+  // Fetch single order details
+  const { data: orderDetails, isLoading: orderDetailsLoading, refetch: refetchOrderDetails } = useQuery(
+    ['order-details', selectedOrder],
+    async () => {
+      try {
+        const response = await axios.get(`/orders/${selectedOrder}`);
+        return response.data.data;
+      } catch (error) {
+        console.error('Error fetching order details:', error);
+        throw error;
+      }
+    },
+    {
+      enabled: !!selectedOrder,
+      onSuccess: () => {
+        setShowOrderModal(true);
+      },
+      onError: () => {
+        toast.error('Failed to fetch order details');
+      }
+    }
+  );
+
+  // Update order status mutation
+  const queryClient = useQueryClient();
+  const updateOrderStatus = useMutation(
+    async ({ orderId, status }) => {
+      const response = await axios.patch(`/orders/${orderId}/status`, {
+        orderStatus: status
+      });
+      return response.data;
+    },
+    {
+      onSuccess: () => {
+        // Invalidate and refetch orders queries
+        queryClient.invalidateQueries(['admin-orders']);
+        queryClient.invalidateQueries(['admin-stats']);
+        if (selectedOrder) {
+          refetchOrderDetails();
+        }
+        toast.success('Order status updated successfully');
+      },
+      onError: () => {
+        toast.error('Failed to update order status');
+      }
+    }
+  );
+
   // Get status badge class
   const getStatusBadgeClass = (status) => {
     switch (status) {
@@ -110,6 +192,20 @@ const AdminDashboardPage = () => {
       case 'delivered':
         return 'bg-green-100 text-green-800'
       case 'cancelled':
+        return 'bg-red-100 text-red-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+  
+  // Get payment status badge class
+  const getPaymentStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'paid':
+        return 'bg-green-100 text-green-800'
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'failed':
         return 'bg-red-100 text-red-800'
       default:
         return 'bg-gray-100 text-gray-800'
@@ -129,7 +225,24 @@ const AdminDashboardPage = () => {
       currency: 'USD',
     }).format(amount)
   }
-  
+
+  const tabs = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'products', label: 'Products' },
+    { id: 'categories', label: 'Categories' },
+    { id: 'collections', label: 'Collections' },
+    { id: 'orders', label: 'Orders' },
+    { id: 'customers', label: 'Customers' },
+    { id: 'contacts', label: `Messages ${unreadContactCount > 0 ? `(${unreadContactCount})` : ''}` },
+    { id: 'notifications', label: 'Notifications' },
+    { id: 'cms', label: 'CMS Pages' },
+  ];
+
+  // Handle view order details
+  const handleViewOrder = (orderId) => {
+    setSelectedOrder(orderId);
+  };
+
   // Render overview tab
   const renderOverview = () => (
     <div>
@@ -248,7 +361,7 @@ const AdminDashboardPage = () => {
                       </span>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
-                      <Button variant="outline" size="xs">View</Button>
+                      <Button variant="outline" size="xs" onClick={() => handleViewOrder(order._id)}>View</Button>
                     </td>
                   </tr>
                 ))}
@@ -308,80 +421,7 @@ const AdminDashboardPage = () => {
       </div>
     </div>
   )
-  
-  // Render products tab
-  const renderProducts = () => (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xl font-semibold">Products Management</h3>
-        <Button>Add New Product</Button>
-      </div>
-      
-      {productsLoading ? (
-        <div className="flex justify-center items-center py-12">
-          <div className="w-12 h-12 border-4 border-teal border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      ) : productsData?.data?.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inventory</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {productsData.data.map((product) => (
-                <tr key={product._id}>
-                  <td className="px-4 py-4 text-sm">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 flex-shrink-0 mr-3">
-                        <img className="h-10 w-10 rounded-md object-cover" src={product.images[0]} alt={product.title} />
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">{product.title}</div>
-                        <div className="text-gray-500 truncate max-w-xs">{product.description.substring(0, 60)}...</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm">
-                    {product.salePrice ? (
-                      <div>
-                        <span className="font-medium">{formatCurrency(product.salePrice)}</span>
-                        <span className="text-gray-500 line-through ml-2">{formatCurrency(product.price)}</span>
-                      </div>
-                    ) : (
-                      formatCurrency(product.price)
-                    )}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.inventoryCount < 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
-                      {product.inventoryCount} in stock
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm">
-                    {product.categories?.map(cat => cat.name).join(', ') || 'Uncategorized'}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
-                    <Button variant="outline" size="xs" className="mr-2">Edit</Button>
-                    <Button variant="danger" size="xs">Delete</Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="text-center py-8">
-          <p className="text-gray-500">No products found</p>
-        </div>
-      )}
-    </div>
-  )
-  
+
   // Render orders tab
   const renderOrders = () => (
     <div className="bg-white rounded-lg shadow-sm p-6">
@@ -419,13 +459,15 @@ const AdminDashboardPage = () => {
                     </span>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
-                    <Button variant="outline" size="xs" className="mr-2">View</Button>
+                    <Button variant="outline" size="xs" className="mr-2" onClick={() => handleViewOrder(order._id)}>View</Button>
                     <select 
                       className="text-sm border-gray-300 rounded-md"
                       defaultValue={order.orderStatus}
                       onChange={(e) => {
-                        // Here you would call an API to update the order status
-                        console.log(`Update order ${order._id} status to ${e.target.value}`);
+                        updateOrderStatus.mutate({
+                          orderId: order._id,
+                          status: e.target.value
+                        });
                       }}
                     >
                       <option value="processing">Processing</option>
@@ -447,56 +489,183 @@ const AdminDashboardPage = () => {
     </div>
   )
   
-  // Render customers tab (placeholder for now)
-  const renderCustomers = () => (
-    <div className="bg-white rounded-lg shadow-sm p-6 text-center py-12">
-      <h3 className="text-xl font-semibold mb-4">Customers Management</h3>
-      <p className="text-gray-500 mb-6">This section is under development.</p>
-      <Button onClick={() => setActiveTab('overview')}>Back to Overview</Button>
-    </div>
-  )
-  
-  return (
-    <div className="bg-gray-50 py-8">
-      <div className="container-custom">
-        <h1 className="text-3xl font-heading font-semibold mb-8">Admin Dashboard</h1>
-        
-        {/* Dashboard tabs */}
-        <div className="flex border-b border-gray-200 mb-8 overflow-x-auto">
-          <button
-            className={`px-4 py-2 font-medium text-sm ${activeTab === 'overview' ? 'text-teal border-b-2 border-teal' : 'text-gray-500 hover:text-teal'}`}
-            onClick={() => setActiveTab('overview')}
-          >
-            Overview
-          </button>
-          <button
-            className={`px-4 py-2 font-medium text-sm ${activeTab === 'products' ? 'text-teal border-b-2 border-teal' : 'text-gray-500 hover:text-teal'}`}
-            onClick={() => setActiveTab('products')}
-          >
-            Products
-          </button>
-          <button
-            className={`px-4 py-2 font-medium text-sm ${activeTab === 'orders' ? 'text-teal border-b-2 border-teal' : 'text-gray-500 hover:text-teal'}`}
-            onClick={() => setActiveTab('orders')}
-          >
-            Orders
-          </button>
-          <button
-            className={`px-4 py-2 font-medium text-sm ${activeTab === 'customers' ? 'text-teal border-b-2 border-teal' : 'text-gray-500 hover:text-teal'}`}
-            onClick={() => setActiveTab('customers')}
-          >
-            Customers
-          </button>
-        </div>
-        
-        {/* Tab content */}
-        {activeTab === 'overview' && renderOverview()}
-        {activeTab === 'products' && renderProducts()}
-        {activeTab === 'orders' && renderOrders()}
-        {activeTab === 'customers' && renderCustomers()}
-      </div>
-    </div>
-  )
-}
+  // Render customers tab
+  const renderCustomers = () => <CustomerManagement />
 
-export default AdminDashboardPage
+  // Render contacts tab
+  const renderContacts = () => <ContactManagement />
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return renderOverview();
+      case 'products':
+        return <ProductManagement />;
+      case 'categories':
+        return <CategoryManagement />;
+      case 'collections':
+        return <CollectionManagement />;
+      case 'orders':
+        return renderOrders();
+      case 'customers':
+        return renderCustomers();
+      case 'contacts':
+        return renderContacts();
+      case 'notifications':
+        return <NotificationManagement />;
+      case 'cms':
+        return <CmsManagement />;
+      default:
+        return <ProductManagement />;
+    }
+  };
+
+  return (
+    <div className="container-custom mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
+      
+      <div className="mb-6 border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`
+                whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
+                ${activeTab === tab.id
+                  ? 'border-teal-500 text-teal-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
+              `}
+              aria-current={activeTab === tab.id ? 'page' : undefined}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        {renderTabContent()}
+      </div>
+
+      {/* Order Details Modal */}
+      {showOrderModal && orderDetails && (
+        <Modal
+          isOpen={showOrderModal}
+          onClose={() => setShowOrderModal(false)}
+          title={`Order Details #${orderDetails._id.substring(0, 8)}`}
+        >
+          <div className="p-4">
+            {/* Order Summary */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Order Date</h3>
+                <p className="font-medium">{formatDate(orderDetails.createdAt)}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Total Amount</h3>
+                <p className="font-medium">{formatCurrency(orderDetails.totalAmount)}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Order Status</h3>
+                <div className="flex items-center">
+                  <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(orderDetails.orderStatus)}`}>
+                    {orderDetails.orderStatus.charAt(0).toUpperCase() + orderDetails.orderStatus.slice(1)}
+                  </span>
+                  <select
+                    className="ml-2 text-sm border-gray-300 rounded-md"
+                    value={orderDetails.orderStatus}
+                    onChange={(e) => {
+                      updateOrderStatus.mutate({
+                        orderId: orderDetails._id,
+                        status: e.target.value
+                      });
+                    }}
+                  >
+                    <option value="processing">Processing</option>
+                    <option value="shipped">Shipped</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Payment Status</h3>
+                <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${getPaymentStatusBadgeClass(orderDetails.paymentStatus)}`}>
+                  {orderDetails.paymentStatus.charAt(0).toUpperCase() + orderDetails.paymentStatus.slice(1)}
+                </span>
+              </div>
+            </div>
+
+            {/* Customer Information */}
+            <h3 className="font-medium mb-4">Customer Information</h3>
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-1">Customer Name</h4>
+                  <p>{orderDetails.userId?.name || 'N/A'}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-1">Email</h4>
+                  <p>{orderDetails.userId?.email || 'N/A'}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-1">Payment Method</h4>
+                  <p className="capitalize">{orderDetails.paymentMethod?.replace('-', ' ') || 'N/A'}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-1">Order ID</h4>
+                  <p className="font-mono text-xs">{orderDetails._id}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Order Items */}
+            <h3 className="font-medium mb-4">Order Items</h3>
+            <div className="space-y-4 mb-6">
+              {orderDetails.items.map((item) => (
+                <div key={item._id} className="flex items-center border-b border-gray-200 pb-4">
+                  <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-md overflow-hidden">
+                    <img 
+                      src={item.productId.images?.[0]} 
+                      alt={item.productId.title} 
+                      className="w-full h-full object-cover" 
+                    />
+                  </div>
+                  <div className="ml-4 flex-1">
+                    <h4 className="font-medium">{item.productId.title}</h4>
+                    <div className="flex justify-between mt-1">
+                      <div className="text-sm text-gray-500">
+                        <span>Qty: {item.quantity}</span>
+                      </div>
+                      <div className="font-medium">
+                        {formatCurrency(item.priceAtPurchase * item.quantity)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Shipping Address */}
+            <h3 className="font-medium mb-4">Shipping Address</h3>
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <p className="font-medium">{orderDetails.shippingAddress.label || 'Shipping Address'}</p>
+              <p>{orderDetails.shippingAddress.line1}</p>
+              <p>
+                {orderDetails.shippingAddress.city}, {orderDetails.shippingAddress.state} {orderDetails.shippingAddress.zip}
+              </p>
+              <p>{orderDetails.shippingAddress.country}</p>
+            </div>
+
+            <div className="flex justify-end">
+              <Button variant="secondary" onClick={() => setShowOrderModal(false)}>Close</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+};
+
+export default AdminDashboard;

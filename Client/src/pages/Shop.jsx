@@ -8,6 +8,7 @@ import useWishlist from '../hooks/useWishlist'
 import Button from '../components/Common/Button'
 import productImages from '../assets/product-images'
 import { toast } from 'react-toastify'
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 
 const Shop = () => {
   const { isAuthenticated } = useAuth()
@@ -19,7 +20,9 @@ const Shop = () => {
     sort: searchParams.get('sort') || 'newest',
     minPrice: searchParams.get('minPrice') || '',
     maxPrice: searchParams.get('maxPrice') || '',
-    search: searchParams.get('search') || ''
+    search: searchParams.get('search') || '',
+    page: parseInt(searchParams.get('page') || '1', 10),
+    limit: parseInt(searchParams.get('limit') || '9', 10)
   })
   
   // Update URL when filters change
@@ -31,12 +34,14 @@ const Shop = () => {
     if (filters.minPrice) params.set('minPrice', filters.minPrice)
     if (filters.maxPrice) params.set('maxPrice', filters.maxPrice)
     if (filters.search) params.set('search', filters.search)
+    params.set('page', filters.page.toString())
+    params.set('limit', filters.limit.toString())
     
     setSearchParams(params)
   }, [filters, setSearchParams])
   
   // Fetch products with React Query
-  const { data: products, isLoading, error } = useQuery(
+  const { data, isLoading, error } = useQuery(
     ['products', filters],
     async () => {
       try {
@@ -47,6 +52,8 @@ const Shop = () => {
         if (filters.minPrice) params.set('minPrice', filters.minPrice)
         if (filters.maxPrice) params.set('maxPrice', filters.maxPrice)
         if (filters.search) params.set('search', filters.search)
+        params.set('page', filters.page.toString())
+        params.set('limit', filters.limit.toString())
         
         // Set sorting parameter
         switch (filters.sort) {
@@ -75,7 +82,7 @@ const Shop = () => {
         
         // Make API call to get products
         const response = await axios.get(`/products?${params.toString()}`)
-        return response.data.data || []
+        return response.data || {}
       } catch (error) {
         console.error('Error fetching products:', error)
         throw error
@@ -86,12 +93,23 @@ const Shop = () => {
     }
   )
   
+  const products = data?.data || []
+  const pagination = data?.pagination || { total: 0, page: 1, pages: 1 }
+  
   // Handle filter changes
   const handleFilterChange = (name, value) => {
     setFilters(prev => ({
       ...prev,
-      [name]: value
+      [name]: value,
+      // Reset to page 1 when filters change (except when changing page)
+      ...(name !== 'page' && { page: 1 })
     }))
+  }
+  
+  // Handle page change
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > pagination.pages) return
+    handleFilterChange('page', newPage)
   }
   
   // Handle search input
@@ -287,6 +305,9 @@ const Shop = () => {
                 <div className="flex justify-between items-center mb-4">
                   <p className="text-gray-600">
                     Showing <span className="font-medium">{products.length}</span> products
+                    {pagination.total > 0 && (
+                      <> of <span className="font-medium">{pagination.total}</span> total</>
+                    )}
                   </p>
                 </div>
                 
@@ -315,7 +336,21 @@ const Shop = () => {
                               fullWidth
                               onClick={(e) => {
                                 e.preventDefault()
-                                addToCart(product)
+                                // Get the image URL from product
+                                const imageUrl = product.images && product.images.length > 0 
+                                  ? product.images[0] 
+                                  : productImages.tshirtWhite
+                                
+                                // Ensure product has consistent id, name, and image properties
+                                const enhancedProduct = {
+                                  ...product,
+                                  id: product.id || product._id,
+                                  _id: product.id || product._id,
+                                  name: product.title || product.name,
+                                  title: product.title || product.name,
+                                  image: imageUrl
+                                }
+                                addToCart(enhancedProduct)
                               }}
                             >
                               Add to Cart
@@ -325,27 +360,46 @@ const Shop = () => {
                               fullWidth
                               variant="secondary"
                               onClick={(e) => {
-                                e.preventDefault()
-                                if (isInWishlist(product.id)) {
-                                  removeFromWishlist(product.id || product._id)
-                                  toast.info(`${product.title || product.name} removed from wishlist!`, {
+                                e.preventDefault();
+                                // Get product ID (handle both id and _id)
+                                const productId = product.id || product._id;
+                                // Get product name (handle both title and name)
+                                const productName = product.title || product.name;
+                                
+                                // Log for debugging
+                                console.log('Handling wishlist action for product:', product);
+                                console.log('Using productId:', productId);
+                                
+                                if (isInWishlist(productId)) {
+                                  removeFromWishlist(productId);
+                                  toast.info(`${productName} removed from wishlist!`, {
                                     position: "top-right",
                                     autoClose: 3000,
                                     hideProgressBar: false,
                                     closeOnClick: true,
                                     pauseOnHover: true,
                                     draggable: true
-                                  })
+                                  });
                                 } else {
-                                  addToWishlist(product)
-                                  toast.success(`${product.title || product.name} added to wishlist!`, {
+                                  // Make sure product has all necessary fields
+                                  const enhancedProduct = {
+                                    ...product,
+                                    id: productId,
+                                    _id: productId,
+                                    title: productName,
+                                    name: productName
+                                  };
+                                  
+                                  addToWishlist(enhancedProduct);
+                                  toast.success(`${productName} added to wishlist!`, {
                                     position: "top-right",
                                     autoClose: 3000,
                                     hideProgressBar: false,
                                     closeOnClick: true,
                                     pauseOnHover: true,
                                     draggable: true
-                                  })
+                                  });
+                                  
                                   toast.info(`Please login to add to cart.`, {
                                     position: "top-right",
                                     autoClose: 3000,
@@ -353,7 +407,7 @@ const Shop = () => {
                                     closeOnClick: true,
                                     pauseOnHover: true,
                                     draggable: true
-                                  })
+                                  });
                                 }
                               }}
                             >
@@ -365,6 +419,64 @@ const Shop = () => {
                     </div>
                   ))}
                 </div>
+                
+                {/* Pagination Controls */}
+                {pagination.pages > 1 && (
+                  <div className="mt-8 flex justify-center">
+                    <nav className="flex items-center space-x-2" aria-label="Pagination">
+                      <button
+                        onClick={() => handlePageChange(pagination.page - 1)}
+                        disabled={pagination.page === 1}
+                        className={`p-2 rounded-md ${pagination.page === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
+                        aria-label="Previous page"
+                      >
+                        <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                      
+                      {/* Page Numbers */}
+                      {[...Array(pagination.pages)].map((_, i) => {
+                        const pageNum = i + 1;
+                        // Show current page, first page, last page, and pages around current page
+                        const showPageNum = pageNum === 1 || 
+                                          pageNum === pagination.pages || 
+                                          Math.abs(pageNum - pagination.page) <= 1;
+                        
+                        // Show ellipsis for page gaps
+                        if (!showPageNum) {
+                          // Show ellipsis only once between gaps
+                          if (pageNum === 2 || pageNum === pagination.pages - 1) {
+                            return (
+                              <span key={`ellipsis-${pageNum}`} className="px-2 text-gray-500">
+                                ...
+                              </span>
+                            );
+                          }
+                          return null;
+                        }
+                        
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`px-4 py-2 rounded-md ${pageNum === pagination.page ? 'bg-teal text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+                            aria-current={pageNum === pagination.page ? 'page' : undefined}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                      
+                      <button
+                        onClick={() => handlePageChange(pagination.page + 1)}
+                        disabled={pagination.page === pagination.pages}
+                        className={`p-2 rounded-md ${pagination.page === pagination.pages ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
+                        aria-label="Next page"
+                      >
+                        <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                    </nav>
+                  </div>
+                )}
               </>
             )}
           </div>

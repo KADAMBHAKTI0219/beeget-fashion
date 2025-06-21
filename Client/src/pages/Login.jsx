@@ -42,8 +42,12 @@ const Login = () => {
         // Redirect to the page user was trying to access or home
         navigate(from, { replace: true })
       } else {
+        // Check if user is banned
+        if (result.isBanned) {
+          setServerError(`Your account has been banned. ${result.banReason ? `Reason: ${result.banReason}` : 'Please contact support for assistance.'}`)
+        }
         // Check if email needs verification
-        if (result.needsVerification) {
+        else if (result.needsVerification) {
           // Redirect to verification page or show verification message
           navigate('/verify-email', { 
             state: { 
@@ -103,34 +107,36 @@ const Login = () => {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-java-400 border-gray-300 rounded focus:ring-java-400"
+                  className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
                   Remember me
                 </label>
               </div>
               
               <div className="text-sm">
-                <Link to="/forgot-password" className="text-java-400 hover:text-java-500 transition-colors">
+                <Link to="/forgot-password" className="font-medium text-teal-600 hover:text-teal-500">
                   Forgot your password?
                 </Link>
               </div>
             </div>
           </div>
           
-          <Button
-            type="submit"
-            fullWidth
-            size="lg"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Signing in...' : 'Sign in'}
-          </Button>
+          <div>
+            <Button
+              type="submit"
+              variant="primary"
+              className="w-full"
+              isLoading={isLoading}
+            >
+              Sign in
+            </Button>
+          </div>
           
-          <div className="text-center mt-4">
-            <p className="text-sm text-gray-600">
+          <div className="text-center text-sm">
+            <p className="text-gray-600">
               Don't have an account?{' '}
-              <Link to="/register" className="text-java-400 hover:text-java-500 transition-colors font-medium">
+              <Link to="/register" className="font-medium text-teal-600 hover:text-teal-500">
                 Sign up
               </Link>
             </p>

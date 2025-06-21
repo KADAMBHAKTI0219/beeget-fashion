@@ -11,25 +11,38 @@ export const AuthProvider = ({ children }) => {
 
   // Initialize auth state from localStorage
   useEffect(() => {
+    console.log('Initializing auth state from localStorage')
     const storedUser = localStorage.getItem('user')
     const storedTokens = localStorage.getItem('tokens')
+    
+    console.log('Stored user in localStorage:', storedUser ? 'Present' : 'Not present')
+    console.log('Stored tokens in localStorage:', storedTokens ? 'Present' : 'Not present')
     
     if (storedUser && storedTokens) {
       try {
         const parsedUser = JSON.parse(storedUser)
         const parsedTokens = JSON.parse(storedTokens)
         
+        console.log('Parsed user:', parsedUser)
+        console.log('Parsed tokens:', {
+          accessToken: parsedTokens.accessToken ? `${parsedTokens.accessToken.substring(0, 10)}...` : 'Missing',
+          refreshToken: parsedTokens.refreshToken ? 'Present' : 'Missing'
+        })
+        
         setUser(parsedUser)
         setTokens(parsedTokens)
         
         // Set authorization header for all future requests
         axios.defaults.headers.common['Authorization'] = `Bearer ${parsedTokens.accessToken}`
+        console.log('Set Authorization header for future requests')
       } catch (error) {
         console.error('Error parsing stored auth data:', error)
         // Clear invalid data
         localStorage.removeItem('user')
         localStorage.removeItem('tokens')
       }
+    } else {
+      console.log('No stored auth data found, user is not authenticated')
     }
     
     setLoading(false)
@@ -38,11 +51,13 @@ export const AuthProvider = ({ children }) => {
   // Login function
   const login = async (email, password, autoLoginData = null) => {
     try {
+      console.log('Login function called')
       setLoading(true)
       setError(null)
       
       // अगर autoLoginData है तो API कॉल को बायपास करें
       if (autoLoginData) {
+        console.log('Using autoLoginData for login')
         const { tokens: tokensData, userData } = autoLoginData;
         
         // Save to state
@@ -52,25 +67,45 @@ export const AuthProvider = ({ children }) => {
         // Save to localStorage
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('tokens', JSON.stringify(tokensData));
+        console.log('Saved autoLoginData to localStorage')
         
         // Set authorization header for all future requests
         axios.defaults.headers.common['Authorization'] = `Bearer ${tokensData.accessToken}`;
+        console.log('Set Authorization header for future requests')
         
         return { success: true, message: 'Login successful' };
       }
       
+      console.log('Making API call to login endpoint')
       // Make real API call to backend
       const response = await axios.post('/auth/login', { email, password })
+      console.log('Login API response:', response.data)
+      
+      // Check if user is banned
+      if (response.data.isBanned) {
+        console.log('User is banned')
+        return { 
+          success: false, 
+          isBanned: true,
+          banReason: response.data.banReason || null
+        }
+      }
       
       // Extract data from response
       const { accessToken, refreshToken, message } = response.data
+      console.log('Extracted tokens:', { 
+        accessToken: accessToken ? `${accessToken.substring(0, 10)}...` : 'Missing', 
+        refreshToken: refreshToken ? 'Present' : 'Missing' 
+      })
       
+      console.log('Getting user profile data')
       // Get user data
       const userResponse = await axios.get('/auth/profile', {
         headers: {
           'Authorization': `Bearer ${accessToken}`
         }
       })
+      console.log('User profile response:', userResponse.data)
       
       const userData = userResponse.data
       
@@ -83,13 +118,16 @@ export const AuthProvider = ({ children }) => {
       // Save to state
       setUser(userData)
       setTokens(tokensData)
+      console.log('Saved user and tokens to state')
       
       // Save to localStorage
       localStorage.setItem('user', JSON.stringify(userData))
       localStorage.setItem('tokens', JSON.stringify(tokensData))
+      console.log('Saved user and tokens to localStorage')
       
       // Set authorization header for all future requests
       axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
+      console.log('Set Authorization header for future requests')
       
       return { success: true, message }
     } catch (err) {
@@ -100,7 +138,9 @@ export const AuthProvider = ({ children }) => {
         success: false, 
         error: errorMessage,
         needsVerification: err.response?.data?.needsVerification || false,
-        email: err.response?.data?.email
+        email: err.response?.data?.email,
+        isBanned: err.response?.data?.isBanned || false,
+        banReason: err.response?.data?.banReason
       }
     } finally {
       setLoading(false)
@@ -185,10 +225,11 @@ export const AuthProvider = ({ children }) => {
       setError('')
       
       // Call the API to update profile
-      const response = await api.patch('/auth/profile', userData)
+      // Use the correct endpoint that matches with the backend
+      const response = await axios.patch('/user/profile', userData)
       
       // Update user data in state and localStorage
-      const updatedUser = response.data.user
+      const updatedUser = response.data.user || response.data.data
       setUser(updatedUser)
       localStorage.setItem('user', JSON.stringify(updatedUser))
       
@@ -210,7 +251,7 @@ export const AuthProvider = ({ children }) => {
   const isAuthenticated = !!user
   
   // Check if user is admin
-  const isAdmin = user?.isAdmin || false
+  const isAdmin = user?.role === 'admin' || false
   
   // Forgot password function
   const forgotPassword = async (email) => {

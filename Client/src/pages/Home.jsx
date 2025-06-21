@@ -41,7 +41,7 @@ const Home = () => {
             id: 1,
             name: 'Classic White Tee',
             price: 29.99,
-            image: 'https://via.placeholder.com/300x400?text=Product+1',
+            image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&h=400&q=80',
             category: 'women',
             slug: 'classic-white-tee'
           },
@@ -49,7 +49,7 @@ const Home = () => {
             id: 2,
             name: 'Slim Fit Jeans',
             price: 59.99,
-            image: 'https://via.placeholder.com/300x400?text=Product+2',
+            image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&h=400&q=80',
             category: 'men',
             slug: 'slim-fit-jeans'
           },
@@ -57,7 +57,7 @@ const Home = () => {
             id: 3,
             name: 'Summer Dress',
             price: 49.99,
-            image: 'https://via.placeholder.com/300x400?text=Product+3',
+            image: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&h=400&q=80',
             category: 'women',
             slug: 'summer-dress'
           },
@@ -65,7 +65,7 @@ const Home = () => {
             id: 4,
             name: 'Leather Wallet',
             price: 39.99,
-            image: 'https://via.placeholder.com/300x400?text=Product+4',
+            image: 'https://images.unsplash.com/photo-1517254797898-ee1bd9c0115b?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&h=400&q=80',
             category: 'accessories',
             slug: 'leather-wallet'
           },

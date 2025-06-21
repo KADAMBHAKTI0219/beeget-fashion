@@ -703,15 +703,23 @@ Response:
 ```
 POST /promotions
 
+Headers:
+Authorization: Bearer jwt_token_here
+
 Request Body:
 {
-    "code": "SUMMER2023",
+    "name": "Summer Sale 2023",
+    "description": "Get amazing discounts on summer collection",
+    "image": "promotion_image_url",
     "discountType": "percentage",
     "discountValue": 20,
     "startDate": "2023-06-01T00:00:00.000Z",
     "endDate": "2023-08-31T23:59:59.999Z",
+    "active": true,
     "applicableProducts": ["product_id_1", "product_id_2"],
-    "minPurchaseAmount": 100
+    "applicableCategories": ["category_id_1"],
+    "minimumPurchase": 100,
+    "promotionType": "general"
 }
 
 Response:
@@ -719,14 +727,308 @@ Response:
     "success": true,
     "data": {
         "_id": "promotion_id",
-        "code": "SUMMER2023",
+        "name": "Summer Sale 2023",
+        "slug": "summer-sale-2023",
+        "description": "Get amazing discounts on summer collection",
+        "image": "promotion_image_url",
         "discountType": "percentage",
         "discountValue": 20,
         "startDate": "2023-06-01T00:00:00.000Z",
         "endDate": "2023-08-31T23:59:59.999Z",
+        "active": true,
         "applicableProducts": ["product_id_1", "product_id_2"],
-        "minPurchaseAmount": 100,
-        "isActive": true
+        "applicableCategories": ["category_id_1"],
+        "minimumPurchase": 100,
+        "promotionType": "general",
+        "usageLimit": null,
+        "usageCount": 0
     }
+}
+```
+
+### Create Coupon Promotion (Admin)
+```
+POST /promotions
+
+Headers:
+Authorization: Bearer jwt_token_here
+
+Request Body:
+{
+    "name": "Exclusive User Coupon",
+    "description": "Special discount for loyal customers",
+    "image": "coupon_image_url",
+    "discountType": "percentage",
+    "discountValue": 15,
+    "startDate": "2023-06-01T00:00:00.000Z",
+    "endDate": "2023-12-31T23:59:59.999Z",
+    "active": true,
+    "applicableProducts": [],
+    "applicableCategories": [],
+    "minimumPurchase": 50,
+    "promotionType": "coupon",
+    "couponPrefix": "LOYAL",
+    "couponLength": 8,
+    "couponExpireDays": 30
+}
+
+Response:
+{
+    "success": true,
+    "data": {
+        "_id": "promotion_id",
+        "name": "Exclusive User Coupon",
+        "slug": "exclusive-user-coupon",
+        "description": "Special discount for loyal customers",
+        "image": "coupon_image_url",
+        "discountType": "percentage",
+        "discountValue": 15,
+        "startDate": "2023-06-01T00:00:00.000Z",
+        "endDate": "2023-12-31T23:59:59.999Z",
+        "active": true,
+        "minimumPurchase": 50,
+        "promotionType": "coupon",
+        "couponPrefix": "LOYAL",
+        "couponLength": 8,
+        "couponExpireDays": 30,
+        "userCoupons": []
+    }
+}
+```
+
+### Generate User Coupons (Admin)
+```
+POST /promotions/generate-coupons
+
+Headers:
+Authorization: Bearer jwt_token_here
+
+Request Body:
+{
+    "promotionId": "promotion_id",
+    "userIds": ["user_id_1", "user_id_2", "user_id_3"]
+}
+
+Response:
+{
+    "success": true,
+    "data": {
+        "results": [
+            {
+                "userId": "user_id_1",
+                "email": "user1@example.com",
+                "couponCode": "LOYAL-AB12CD34",
+                "expiresAt": "2023-07-15T00:00:00.000Z",
+                "status": "success"
+            },
+            {
+                "userId": "user_id_2",
+                "email": "user2@example.com",
+                "couponCode": "LOYAL-EF56GH78",
+                "expiresAt": "2023-07-15T00:00:00.000Z",
+                "status": "success"
+            },
+            {
+                "userId": "user_id_3",
+                "email": "user3@example.com",
+                "status": "skipped",
+                "message": "User already has an active coupon for this promotion"
+            }
+        ],
+        "successCount": 2,
+        "skippedCount": 1,
+        "errorCount": 0
+    }
+}
+```
+
+### Get User's Coupons
+```
+GET /promotions/user/:userId
+
+Headers:
+Authorization: Bearer jwt_token_here
+
+Response:
+{
+    "success": true,
+    "data": [
+        {
+            "promotionId": "promotion_id",
+            "promotionName": "Exclusive User Coupon",
+            "promotionDescription": "Special discount for loyal customers",
+            "discountType": "percentage",
+            "discountValue": 15,
+            "couponCode": "LOYAL-AB12CD34",
+            "isUsed": false,
+            "expiresAt": "2023-07-15T00:00:00.000Z",
+            "isExpired": false,
+            "image": "coupon_image_url"
+        }
+    ]
+}
+```
+
+### Verify Coupon
+```
+POST /promotions/verify-coupon
+
+Headers:
+Authorization: Bearer jwt_token_here
+
+Request Body:
+{
+    "couponCode": "LOYAL-AB12CD34",
+    "userId": "user_id_1"
+}
+
+Response:
+{
+    "success": true,
+    "data": {
+        "promotionId": "promotion_id",
+        "promotionName": "Exclusive User Coupon",
+        "discountType": "percentage",
+        "discountValue": 15,
+        "couponCode": "LOYAL-AB12CD34",
+        "expiresAt": "2023-07-15T00:00:00.000Z"
+    }
+}
+```
+
+### Redeem Coupon
+```
+POST /promotions/redeem-coupon
+
+Headers:
+Authorization: Bearer jwt_token_here
+
+Request Body:
+{
+    "couponCode": "LOYAL-AB12CD34",
+    "userId": "user_id_1",
+    "orderId": "order_id"
+}
+
+Response:
+{
+    "success": true,
+    "message": "Coupon redeemed successfully",
+    "data": {
+        "promotionId": "promotion_id",
+        "promotionName": "Exclusive User Coupon",
+        "discountType": "percentage",
+        "discountValue": 15,
+        "couponCode": "LOYAL-AB12CD34",
+        "redeemedAt": "2023-06-15T10:30:00.000Z"
+    }
+}
+```
+
+## Wishlist API
+
+### Get User's Wishlist
+```
+GET /wishlist
+
+Headers:
+Authorization: Bearer jwt_token_here
+
+Response:
+{
+    "success": true,
+    "data": [
+        {
+            "productId": {
+                "_id": "product_id",
+                "title": "Product Name",
+                "price": 99.99,
+                "salePrice": 79.99,
+                "images": ["image_url_1"],
+                "slug": "product-name",
+                "stock": 100
+            },
+            "addedAt": "2023-06-01T00:00:00.000Z",
+            "_id": "wishlist_item_id"
+        }
+    ]
+}
+```
+
+### Add Item to Wishlist
+```
+POST /wishlist
+
+Headers:
+Authorization: Bearer jwt_token_here
+
+Request Body:
+{
+    "productId": "product_id"
+}
+
+Response:
+{
+    "success": true,
+    "message": "Product added to wishlist",
+    "data": [
+        {
+            "productId": {
+                "_id": "product_id",
+                "title": "Product Name",
+                "price": 99.99,
+                "salePrice": 79.99,
+                "images": ["image_url_1"],
+                "slug": "product-name",
+                "stock": 100
+            },
+            "addedAt": "2023-06-01T00:00:00.000Z",
+            "_id": "wishlist_item_id"
+        }
+    ]
+}
+```
+
+### Remove Item from Wishlist
+```
+DELETE /wishlist/:productId
+
+Headers:
+Authorization: Bearer jwt_token_here
+
+Response:
+{
+    "success": true,
+    "message": "Product removed from wishlist",
+    "data": [
+        {
+            "productId": {
+                "_id": "other_product_id",
+                "title": "Other Product",
+                "price": 149.99,
+                "salePrice": 129.99,
+                "images": ["image_url_2"],
+                "slug": "other-product",
+                "stock": 50
+            },
+            "addedAt": "2023-06-02T00:00:00.000Z",
+            "_id": "other_wishlist_item_id"
+        }
+    ]
+}
+```
+
+### Clear Wishlist
+```
+DELETE /wishlist
+
+Headers:
+Authorization: Bearer jwt_token_here
+
+Response:
+{
+    "success": true,
+    "message": "Wishlist cleared",
+    "data": []
 }
 ```

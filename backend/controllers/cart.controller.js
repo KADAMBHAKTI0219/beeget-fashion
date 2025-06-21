@@ -5,11 +5,11 @@ const { validateObjectId } = require('../middleware/validate');
 // Get user's cart
 exports.getCart = async (req, res) => {
     try {
-        let cart = await Cart.findOne({ userId: req.user._id })
+        let cart = await Cart.findOne({ userId: req.user.userId })
             .populate('items.productId', 'title price images stock');
 
         if (!cart) {
-            cart = await Cart.create({ userId: req.user._id, items: [] });
+            cart = await Cart.create({ userId: req.user.userId, items: [] });
         }
 
         res.json({
@@ -46,10 +46,10 @@ exports.addToCart = async (req, res) => {
         }
 
         // Find or create cart
-        let cart = await Cart.findOne({ userId: req.user._id });
+        let cart = await Cart.findOne({ userId: req.user.userId });
         if (!cart) {
             cart = await Cart.create({
-                userId: req.user._id,
+                userId: req.user.userId,
                 items: [{ productId, quantity }]
             });
         } else {
@@ -88,7 +88,7 @@ exports.updateCartItem = async (req, res) => {
         const { itemId } = req.params;
         const { quantity } = req.body;
 
-        const cart = await Cart.findOne({ userId: req.user._id });
+        const cart = await Cart.findOne({ userId: req.user.userId });
         if (!cart) {
             return res.status(404).json({
                 success: false,
@@ -134,7 +134,7 @@ exports.removeCartItem = async (req, res) => {
     try {
         const { itemId } = req.params;
 
-        const cart = await Cart.findOne({ userId: req.user._id });
+        const cart = await Cart.findOne({ userId: req.user.userId });
         if (!cart) {
             return res.status(404).json({
                 success: false,

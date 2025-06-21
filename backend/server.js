@@ -14,6 +14,8 @@ const cartRoutes = require('./routes/cart.routes');
 const orderRoutes = require('./routes/order.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const userRoutes = require('./routes/user.routes');
+const wishlistRoutes = require('./routes/wishlist.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
 
@@ -35,6 +37,8 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -43,7 +47,18 @@ app.use((err, req, res, next) => {
 });
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI)
+mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    connectTimeoutMS: 60000, // Increased connection timeout to 60 seconds
+    socketTimeoutMS: 60000, // Increased socket timeout to 60 seconds
+    serverSelectionTimeoutMS: 60000, // Increased server selection timeout to 60 seconds
+    maxPoolSize: 100, // Increase connection pool size
+    minPoolSize: 5, // Minimum pool size
+    maxIdleTimeMS: 30000, // How long a connection can be idle before being removed
+    family: 4, // Use IPv4, skip trying IPv6
+    autoIndex: false, // Don't build indexes automatically in production
+})
     .then(() => console.log('Connected to MongoDB'))
     .catch(err => console.error('MongoDB connection error:', err));
 
