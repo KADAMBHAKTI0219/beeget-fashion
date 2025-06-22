@@ -47,25 +47,23 @@ const AccountOrders = () => {
 
   // Cancel order mutation
   const queryClient = useQueryClient();
-  const cancelOrder = useMutation(
-    async (orderId) => {
+  const cancelOrder = useMutation({
+    mutationFn: async (orderId) => {
       const response = await axios.patch(`/orders/${orderId}/cancel`);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        // Invalidate and refetch orders query
-        queryClient.invalidateQueries(['orders']);
-        if (selectedOrder) {
-          refetchOrderDetails();
-        }
-        toast.success('Order cancelled successfully');
-      },
-      onError: () => {
-        toast.error('Failed to cancel order');
+    onSuccess: () => {
+      // Invalidate and refetch orders query
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      if (selectedOrder) {
+        refetchOrderDetails();
       }
+      toast.success('Order cancelled successfully');
+    },
+    onError: () => {
+      toast.error('Failed to cancel order');
     }
-  );
+  });
 
   // Get status badge class
   const getStatusBadgeClass = (status) => {
