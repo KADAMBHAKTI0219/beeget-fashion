@@ -10,9 +10,9 @@ const AccountOrders = () => {
   const [showOrderModal, setShowOrderModal] = useState(false);
 
   // Fetch orders with React Query
-  const { data: orders, isLoading, error } = useQuery(
-    ['orders'],
-    async () => {
+  const { data: orders, isLoading, error } = useQuery({
+    queryKey: ['orders'],
+    queryFn: async () => {
       try {
         const response = await axios.get('/orders');
         return response.data.data;
@@ -21,15 +21,13 @@ const AccountOrders = () => {
         throw error;
       }
     },
-    {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }
-  );
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  });
 
   // Fetch single order details
-  const { data: orderDetails, isLoading: orderDetailsLoading, refetch: refetchOrderDetails } = useQuery(
-    ['order-details', selectedOrder],
-    async () => {
+  const { data: orderDetails, isLoading: orderDetailsLoading, refetch: refetchOrderDetails } = useQuery({
+    queryKey: ['order-details', selectedOrder],
+    queryFn: async () => {
       try {
         const response = await axios.get(`/orders/${selectedOrder}`);
         return response.data.data;
@@ -38,16 +36,14 @@ const AccountOrders = () => {
         throw error;
       }
     },
-    {
-      enabled: !!selectedOrder,
-      onSuccess: () => {
-        setShowOrderModal(true);
-      },
-      onError: () => {
-        toast.error('Failed to fetch order details');
-      }
+    enabled: !!selectedOrder,
+    onSuccess: () => {
+      setShowOrderModal(true);
+    },
+    onError: () => {
+      toast.error('Failed to fetch order details');
     }
-  );
+  });
 
   // Cancel order mutation
   const queryClient = useQueryClient();

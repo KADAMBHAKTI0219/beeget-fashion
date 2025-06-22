@@ -32,36 +32,32 @@ const Account = () => {
   }, [activeTab])
   
   // Fetch user profile data using React Query
-  const { data: userProfile, isLoading } = useQuery(
-    ['user-profile'],
-    async () => {
+  const { data: userProfile, isLoading } = useQuery({
+    queryKey: ['user-profile'],
+    queryFn: async () => {
       const response = await api.get('/user/profile')
       return response.data.data
     },
-    {
-      enabled: !!user,
-      onError: (error) => {
-        console.error('Error fetching user profile:', error)
-      },
-      staleTime: 300000, // 5 minutes
-      refetchOnWindowFocus: false
-    }
-  )
+    enabled: !!user,
+    onError: (error) => {
+      console.error('Error fetching user profile:', error)
+    },
+    staleTime: 300000, // 5 minutes
+    refetchOnWindowFocus: false
+  })
 
   // Fetch orders count using React Query
-  const { data: ordersData } = useQuery(
-    ['orders-count'],
-    async () => {
+  const { data: ordersData } = useQuery({
+    queryKey: ['orders-count'],
+    queryFn: async () => {
       const response = await api.get('/orders');
       return response.data.data;
     },
-    {
-      enabled: !!user,
-      onError: (error) => {
-        console.error('Error fetching orders:', error);
-      }
+    enabled: !!user,
+    onError: (error) => {
+      console.error('Error fetching orders:', error);
     }
-  );
+  });
 
   // Get orders count
   const ordersCount = ordersData?.length || 0;

@@ -21,9 +21,9 @@ const ProductDetail = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   
   // Fetch product details with React Query
-  const { data: product, isLoading, error } = useQuery(
-    ['product', slug],
-    async () => {
+  const { data: product, isLoading, error } = useQuery({
+    queryKey: ['product', slug],
+    queryFn: async () => {
       try {
         // Make API call to get product by slug
         const response = await axios.get(`/products/${slug}`)
@@ -33,16 +33,14 @@ const ProductDetail = () => {
         throw error
       }
     },
-    {
-      enabled: !!slug,
-      refetchOnWindowFocus: false
-    }
-  )
+    enabled: !!slug,
+    refetchOnWindowFocus: false
+  })
   
   // Fetch related products with React Query
-  const { data: relatedProducts = [], isLoading: isRelatedLoading } = useQuery(
-    ['relatedProducts', product?.categories?.[0]?._id],
-    async () => {
+  const { data: relatedProducts = [], isLoading: isRelatedLoading } = useQuery({
+    queryKey: ['relatedProducts', product?.categories?.[0]?._id],
+    queryFn: async () => {
       try {
         // Make API call to get related products
         const params = new URLSearchParams()
@@ -58,11 +56,9 @@ const ProductDetail = () => {
         return []
       }
     },
-    {
-      enabled: !!product?.categories?.[0]?._id,
-      refetchOnWindowFocus: false
-    }
-  )
+    enabled: !!product?.categories?.[0]?._id,
+    refetchOnWindowFocus: false
+  })
   
   // Handle quantity change
   const handleQuantityChange = (e) => {

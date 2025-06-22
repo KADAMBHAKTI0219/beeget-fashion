@@ -41,9 +41,9 @@ const Shop = () => {
   }, [filters, setSearchParams])
   
   // Fetch products with React Query
-  const { data, isLoading, error } = useQuery(
-    ['products', filters],
-    async () => {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['products', filters],
+    queryFn: async () => {
       try {
         // Build query parameters for API call
         const params = new URLSearchParams()
@@ -88,10 +88,8 @@ const Shop = () => {
         throw error
       }
     },
-    {
-      keepPreviousData: true
-    }
-  )
+    keepPreviousData: true
+  })
   
   const products = data?.data || []
   const pagination = data?.pagination || { total: 0, page: 1, pages: 1 }
