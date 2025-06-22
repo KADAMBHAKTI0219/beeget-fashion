@@ -23,9 +23,9 @@ const NotificationManagement = () => {
   const queryClient = useQueryClient();
 
   // Fetch notifications
-  const { data: notificationsData, isLoading } = useQuery(
-    ['admin-notifications', currentPage, searchTerm, filterType],
-    async () => {
+  const { data: notificationsData, isLoading } = useQuery({
+    queryKey: ['admin-notifications', currentPage, searchTerm, filterType],
+    queryFn: async () => {
       const params = {
         page: currentPage,
         limit: 10
@@ -37,46 +37,40 @@ const NotificationManagement = () => {
       const response = await axios.get('/notifications', { params });
       return response.data;
     },
-    {
-      keepPreviousData: true
-    }
-  );
+    keepPreviousData: true
+  });
 
   // Create notification mutation
-  const createNotification = useMutation(
-    async (data) => {
+  const createNotification = useMutation({
+    mutationFn: async (data) => {
       const response = await axios.post('/notifications', data);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-notifications']);
-        setShowCreateModal(false);
-        resetForm();
-        toast.success('Notification created and sent to all users successfully!');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to create notification');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-notifications'] });
+      setShowCreateModal(false);
+      resetForm();
+      toast.success('Notification created and sent to all users successfully!');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to create notification');
     }
-  );
+  });
 
   // Delete notification mutation
-  const deleteNotification = useMutation(
-    async (id) => {
+  const deleteNotification = useMutation({
+    mutationFn: async (id) => {
       const response = await axios.delete(`/notifications/${id}`);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-notifications']);
-        toast.success('Notification deleted successfully!');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to delete notification');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-notifications'] });
+      toast.success('Notification deleted successfully!');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to delete notification');
     }
-  );
+  });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

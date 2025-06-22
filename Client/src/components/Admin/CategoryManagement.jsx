@@ -23,75 +23,71 @@ const CategoryManagement = () => {
   const queryClient = useQueryClient();
   
   // Fetch categories
-  const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError } = useQuery(
-    ['admin-categories'],
-    async () => {
+  const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError } = useQuery({
+    queryKey: ['admin-categories'],
+    queryFn: async () => {
       const response = await axios.get('/categories');
       return response.data;
     },
-    {
-      staleTime: 60 * 1000, // 1 minute
-    }
+    staleTime: 60 * 1000, // 1 minute
+  }
   );
   
   // Create category mutation
-  const createCategoryMutation = useMutation(
-    async (categoryData) => {
+  const createCategoryMutation = useMutation({
+    mutationFn: async (categoryData) => {
       const response = await axios.post('/categories', categoryData);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-categories']);
-        queryClient.invalidateQueries(['categories']); // Invalidate public categories query
-        setShowAddModal(false);
-        resetForm();
-        toast.success('Category created successfully');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to create category');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] }); // Invalidate public categories query
+      setShowAddModal(false);
+      resetForm();
+      toast.success('Category created successfully');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to create category');
     }
+  }
   );
   
   // Update category mutation
-  const updateCategoryMutation = useMutation(
-    async ({ id, data }) => {
+  const updateCategoryMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
       const response = await axios.put(`/categories/${id}`, data);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-categories']);
-        queryClient.invalidateQueries(['categories']); // Invalidate public categories query
-        setShowEditModal(false);
-        resetForm();
-        toast.success('Category updated successfully');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to update category');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] }); // Invalidate public categories query
+      setShowEditModal(false);
+      resetForm();
+      toast.success('Category updated successfully');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to update category');
     }
+  }
   );
   
   // Delete category mutation
-  const deleteCategoryMutation = useMutation(
-    async (id) => {
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id) => {
       const response = await axios.delete(`/categories/${id}`);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-categories']);
-        queryClient.invalidateQueries(['categories']); // Invalidate public categories query
-        setShowDeleteModal(false);
-        setCurrentCategory(null);
-        toast.success('Category deleted successfully');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to delete category');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] }); // Invalidate public categories query
+      setShowDeleteModal(false);
+      setCurrentCategory(null);
+      toast.success('Category deleted successfully');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to delete category');
     }
+  }
   );
   
   // Handle form input changes

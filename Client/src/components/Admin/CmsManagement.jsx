@@ -29,9 +29,9 @@ const CmsManagement = () => {
   const queryClient = useQueryClient();
 
   // Fetch CMS pages
-  const { data: pagesData, isLoading } = useQuery(
-    ['admin-cms-pages', currentPage, searchTerm, statusFilter],
-    async () => {
+  const { data: pagesData, isLoading } = useQuery({
+    queryKey: ['admin-cms-pages', currentPage, searchTerm, statusFilter],
+    queryFn: async () => {
       const params = {
         page: currentPage,
         limit: 10
@@ -43,64 +43,56 @@ const CmsManagement = () => {
       const response = await axios.get('/cms', { params });
       return response.data;
     },
-    {
-      keepPreviousData: true
-    }
-  );
+    keepPreviousData: true
+  });
 
   // Create CMS page mutation
-  const createPage = useMutation(
-    async (data) => {
+  const createPage = useMutation({
+    mutationFn: async (data) => {
       const response = await axios.post('/cms', data);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-cms-pages']);
-        setShowCreateModal(false);
-        resetForm();
-        toast.success('CMS page created successfully!');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to create CMS page');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-cms-pages'] });
+      setShowCreateModal(false);
+      resetForm();
+      toast.success('CMS page created successfully!');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to create CMS page');
     }
-  );
+  });
 
   // Update CMS page mutation
-  const updatePage = useMutation(
-    async ({ id, data }) => {
+  const updatePage = useMutation({
+    mutationFn: async ({ id, data }) => {
       const response = await axios.put(`/cms/${id}`, data);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-cms-pages']);
-        setShowEditModal(false);
-        toast.success('CMS page updated successfully!');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to update CMS page');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-cms-pages'] });
+      setShowEditModal(false);
+      toast.success('CMS page updated successfully!');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to update CMS page');
     }
-  );
+  });
 
   // Delete CMS page mutation
-  const deletePage = useMutation(
-    async (id) => {
+  const deletePage = useMutation({
+    mutationFn: async (id) => {
       const response = await axios.delete(`/cms/${id}`);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-cms-pages']);
-        toast.success('CMS page deleted successfully!');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to delete CMS page');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-cms-pages'] });
+      toast.success('CMS page deleted successfully!');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to delete CMS page');
     }
-  );
+  });
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;

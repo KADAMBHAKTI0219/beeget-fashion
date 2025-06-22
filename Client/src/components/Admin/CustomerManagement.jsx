@@ -26,9 +26,9 @@ const CustomerManagement = () => {
   const queryClient = useQueryClient();
   
   // Fetch users with React Query
-  const { data: usersData, isLoading, isError, error } = useQuery(
-    ['admin-users', page, limit, searchTerm],
-    async () => {
+  const { data: usersData, isLoading, isError, error } = useQuery({
+    queryKey: ['admin-users', page, limit, searchTerm],
+    queryFn: async () => {
       try {
         const response = await axios.get(`/admin/users?page=${page}&limit=${limit}${searchTerm ? `&search=${searchTerm}` : ''}`);
         return response.data;
@@ -37,95 +37,85 @@ const CustomerManagement = () => {
         throw error;
       }
     },
-    {
-      keepPreviousData: true,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }
-  );
+    keepPreviousData: true,
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  });
   
   // Mutation for updating user
-  const updateUserMutation = useMutation(
-    async ({ userId, userData }) => {
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ userId, userData }) => {
       const response = await axios.put(`/admin/users/${userId}`, userData);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        // Invalidate and refetch users query
-        queryClient.invalidateQueries(['admin-users']);
-        toast.success('User updated successfully');
-        setEditingUser(null);
-      },
-      onError: (error) => {
-        console.error('Error updating user:', error);
-        toast.error(error.response?.data?.message || 'Failed to update user');
-      }
+    onSuccess: () => {
+      // Invalidate and refetch users query
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast.success('User updated successfully');
+      setEditingUser(null);
+    },
+    onError: (error) => {
+      console.error('Error updating user:', error);
+      toast.error(error.response?.data?.message || 'Failed to update user');
     }
-  );
+  });
   
   // Mutation for deleting user
-  const deleteUserMutation = useMutation(
-    async (userId) => {
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId) => {
       const response = await axios.delete(`/admin/users/${userId}`);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        // Invalidate and refetch users query
-        queryClient.invalidateQueries(['admin-users']);
-        toast.success('User deleted successfully');
-        setShowConfirmDelete(false);
-        setUserToDelete(null);
-      },
-      onError: (error) => {
-        console.error('Error deleting user:', error);
-        toast.error(error.response?.data?.message || 'Failed to delete user');
-      }
+    onSuccess: () => {
+      // Invalidate and refetch users query
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast.success('User deleted successfully');
+      setShowConfirmDelete(false);
+      setUserToDelete(null);
+    },
+    onError: (error) => {
+      console.error('Error deleting user:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete user');
     }
-  );
+  });
 
   // Mutation for banning user
-  const banUserMutation = useMutation(
-    async ({ userId, reason }) => {
+  const banUserMutation = useMutation({
+    mutationFn: async ({ userId, reason }) => {
       const response = await axios.put(`/admin/users/${userId}/ban`, { reason });
       return response.data;
     },
-    {
-      onSuccess: () => {
-        // Invalidate and refetch users query
-        queryClient.invalidateQueries(['admin-users']);
-        toast.success('User banned successfully');
-        setShowConfirmBan(false);
-        setUserToBan(null);
-        setBanReason('');
-      },
-      onError: (error) => {
-        console.error('Error banning user:', error);
-        toast.error(error.response?.data?.message || 'Failed to ban user');
-      }
+    onSuccess: () => {
+      // Invalidate and refetch users query
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast.success('User banned successfully');
+      setShowConfirmBan(false);
+      setUserToBan(null);
+      setBanReason('');
+    },
+    onError: (error) => {
+      console.error('Error banning user:', error);
+      toast.error(error.response?.data?.message || 'Failed to ban user');
     }
-  );
+  });
 
   // Mutation for unbanning user
-  const unbanUserMutation = useMutation(
-    async (userId) => {
+  const unbanUserMutation = useMutation({
+    mutationFn: async (userId) => {
       const response = await axios.put(`/admin/users/${userId}/unban`);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        // Invalidate and refetch users query
-        queryClient.invalidateQueries(['admin-users']);
-        toast.success('User unbanned successfully');
-        setShowConfirmUnban(false);
-        setUserToUnban(null);
-      },
-      onError: (error) => {
-        console.error('Error unbanning user:', error);
-        toast.error(error.response?.data?.message || 'Failed to unban user');
-      }
+    onSuccess: () => {
+      // Invalidate and refetch users query
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast.success('User unbanned successfully');
+      setShowConfirmUnban(false);
+      setUserToUnban(null);
+    },
+    onError: (error) => {
+      console.error('Error unbanning user:', error);
+      toast.error(error.response?.data?.message || 'Failed to unban user');
     }
-  );
+  });
   
   // Handle edit button click
   const handleEdit = (user) => {

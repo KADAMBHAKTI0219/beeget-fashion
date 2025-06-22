@@ -60,8 +60,12 @@ const AdminDashboard = () => {
         // Get customers count (if available) or use a reasonable estimate
         let totalCustomers = 0;
         try {
-          const customersResponse = await axios.get('/auth/users/count');
-          totalCustomers = customersResponse.data.count || 0;
+          // Try to get users count from a more reliable endpoint
+          // If /auth/users/count doesn't exist, try an alternative endpoint or skip
+          const customersResponse = await axios.get('/admin/users');
+          // Extract user count from response - adjust based on your API structure
+          totalCustomers = customersResponse.data.pagination?.total || 
+                          customersResponse.data.data?.length || 0;
         } catch (err) {
           console.error('Error fetching customer count:', err);
           // If endpoint doesn't exist, use an estimate based on orders

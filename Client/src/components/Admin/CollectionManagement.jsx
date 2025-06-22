@@ -53,9 +53,9 @@ const CollectionManagement = () => {
   const queryClient = useQueryClient();
   
   // Fetch collections
-  const { data: collectionsData, isLoading: collectionsLoading, error: collectionsError } = useQuery(
-    ['admin-collections'],
-    async () => {
+  const { data: collectionsData, isLoading: collectionsLoading, error: collectionsError } = useQuery({
+    queryKey: ['admin-collections'],
+    queryFn: async () => {
       try {
         const response = await axios.get('/collections');
         console.log('Collections API response:', response);
@@ -66,16 +66,14 @@ const CollectionManagement = () => {
         throw error;
       }
     },
-    {
-      staleTime: 60 * 1000, // 1 minute
-      retry: 2,
-      refetchOnWindowFocus: false
-    }
-  );
+    staleTime: 60 * 1000, // 1 minute,
+    retry: 2,
+    refetchOnWindowFocus: false
+  });
   
   // Delete collection mutation
-  const deleteCollectionMutation = useMutation(
-    async (id) => {
+  const deleteCollectionMutation = useMutation({
+    mutationFn: async (id) => {
       try {
         console.log(`Deleting collection with id: ${id}`);
         const response = await axios.delete(`/collections/${id}`);
@@ -87,24 +85,23 @@ const CollectionManagement = () => {
         throw error;
       }
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-collections']);
-        queryClient.invalidateQueries(['collections']); // Invalidate public collections query
-        setShowDeleteModal(false);
-        setCurrentCollection(null);
-        toast.success('Collection deleted successfully');
-      },
-      onError: (error) => {
-        console.error('Delete collection error:', error);
-        toast.error(error.response?.data?.error || error.response?.data?.message || 'Failed to delete collection');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-collections'] });
+      queryClient.invalidateQueries({ queryKey: ['collections'] }); // Invalidate public collections query
+      setShowDeleteModal(false);
+      setCurrentCollection(null);
+      toast.success('Collection deleted successfully');
+    },
+    onError: (error) => {
+      console.error('Delete collection error:', error);
+      toast.error(error.response?.data?.error || error.response?.data?.message || 'Failed to delete collection');
     }
+  }
   );
   
   // Create collection mutation
-  const createCollectionMutation = useMutation(
-    async (collectionData) => {
+  const createCollectionMutation = useMutation({
+    mutationFn: async (collectionData) => {
       try {
         console.log('Creating collection with data:', collectionData);
         const response = await axios.post('/collections', collectionData);
@@ -116,24 +113,23 @@ const CollectionManagement = () => {
         throw error;
       }
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-collections']);
-        queryClient.invalidateQueries(['collections']); // Invalidate public collections query
-        setShowAddModal(false);
-        resetForm();
-        toast.success('Collection created successfully');
-      },
-      onError: (error) => {
-        console.error('Create collection error:', error);
-        toast.error(error.response?.data?.error || error.response?.data?.message || 'Failed to create collection');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-collections'] });
+      queryClient.invalidateQueries({ queryKey: ['collections'] }); // Invalidate public collections query
+      setShowAddModal(false);
+      resetForm();
+      toast.success('Collection created successfully');
+    },
+    onError: (error) => {
+      console.error('Create collection error:', error);
+      toast.error(error.response?.data?.error || error.response?.data?.message || 'Failed to create collection');
     }
+  }
   );
   
   // Update collection mutation
-  const updateCollectionMutation = useMutation(
-    async ({ id, data }) => {
+  const updateCollectionMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
       try {
         console.log(`Updating collection ${id} with data:`, data);
         const response = await axios.put(`/collections/${id}`, data);
@@ -145,19 +141,18 @@ const CollectionManagement = () => {
         throw error;
       }
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-collections']);
-        queryClient.invalidateQueries(['collections']); // Invalidate public collections query
-        setShowEditModal(false);
-        resetForm();
-        toast.success('Collection updated successfully');
-      },
-      onError: (error) => {
-        console.error('Update collection error:', error);
-        toast.error(error.response?.data?.error || error.response?.data?.message || 'Failed to update collection');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-collections'] });
+      queryClient.invalidateQueries({ queryKey: ['collections'] }); // Invalidate public collections query
+      setShowEditModal(false);
+      resetForm();
+      toast.success('Collection updated successfully');
+    },
+    onError: (error) => {
+      console.error('Update collection error:', error);
+      toast.error(error.response?.data?.error || error.response?.data?.message || 'Failed to update collection');
     }
+  }
   );
   
   // Handle form input changes

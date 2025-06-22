@@ -20,9 +20,9 @@ const ContactManagement = () => {
   const queryClient = useQueryClient();
   
   // Fetch contacts with pagination, search, and filtering
-  const { data, isLoading, error } = useQuery(
-    ['admin-contacts', currentPage, searchTerm, statusFilter],
-    async () => {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['admin-contacts', currentPage, searchTerm, statusFilter],
+    queryFn: async () => {
       const params = {
         page: currentPage,
         limit: 10
@@ -39,46 +39,40 @@ const ContactManagement = () => {
       const response = await axios.get('/contact', { params });
       return response.data;
     },
-    {
-      keepPreviousData: true,
-      staleTime: 5 * 60 * 1000 // 5 minutes
-    }
-  );
+    keepPreviousData: true,
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  });
   
   // Delete contact mutation
-  const deleteContactMutation = useMutation(
-    async (contactId) => {
+  const deleteContactMutation = useMutation({
+    mutationFn: async (contactId) => {
       await axios.delete(`/contact/${contactId}`);
     },
-    {
-      onSuccess: () => {
-        toast.success('Contact message deleted successfully');
-        setShowDeleteModal(false);
-        queryClient.invalidateQueries(['admin-contacts']);
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to delete contact message');
-      }
+    onSuccess: () => {
+      toast.success('Contact message deleted successfully');
+      setShowDeleteModal(false);
+      queryClient.invalidateQueries({ queryKey: ['admin-contacts'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to delete contact message');
     }
-  );
+  });
   
   // Update contact status mutation
-  const updateContactMutation = useMutation(
-    async ({ contactId, data }) => {
+  const updateContactMutation = useMutation({
+    mutationFn: async ({ contactId, data }) => {
       const response = await axios.put(`/contact/${contactId}`, data);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        toast.success('Contact message updated successfully');
-        setShowViewModal(false);
-        queryClient.invalidateQueries(['admin-contacts']);
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to update contact message');
-      }
+    onSuccess: () => {
+      toast.success('Contact message updated successfully');
+      setShowViewModal(false);
+      queryClient.invalidateQueries({ queryKey: ['admin-contacts'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to update contact message');
     }
-  );
+  });
   
   // Handle delete click
   const handleDeleteClick = (contact) => {
