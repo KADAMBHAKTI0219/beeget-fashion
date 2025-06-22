@@ -18,11 +18,17 @@ const generateRefreshToken = (userId) => {
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: process.env.SMTP_PORT,
-    secure: false,
+    secure: false, // true for 465, false for other ports
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS
-    }
+    },
+    tls: {
+        // do not fail on invalid certs
+        rejectUnauthorized: false
+    },
+    debug: true, // show debug output
+    logger: true // log information in console
 });
 
 // Helper function to generate verification token
@@ -33,15 +39,31 @@ const generateVerificationToken = () => {
 // Helper function to send email
 const sendEmail = async (to, subject, html) => {
     try {
-        await transporter.sendMail({
+        console.log('Attempting to send email with the following configuration:');
+        console.log('SMTP_HOST:', process.env.SMTP_HOST);
+        console.log('SMTP_PORT:', process.env.SMTP_PORT);
+        console.log('SMTP_USER:', process.env.SMTP_USER);
+        console.log('FROM_EMAIL:', process.env.FROM_EMAIL);
+        console.log('To:', to);
+        console.log('Subject:', subject);
+        
+        const info = await transporter.sendMail({
             from: process.env.FROM_EMAIL,
             to,
             subject,
             html
         });
+        
+        console.log('Email sent successfully:', info.messageId);
         return true;
     } catch (error) {
-        console.error('Email sending failed:', error);
+        console.error('Email sending failed with detailed error:');
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        if (error.code) console.error('Error code:', error.code);
+        if (error.command) console.error('Error command:', error.command);
+        if (error.response) console.error('Error response:', error.response);
         return false;
     }
 };

@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const Order = require('../models/order.model');
 const Product = require('../models/product.model');
 const Cart = require('../models/cart.model');
+const Promotion = require('../models/promotion.model');
+const axios = require('axios');
 const { validateObjectId } = require('../middleware/validate');
 
 // Create new order
@@ -9,7 +11,9 @@ exports.createOrder = async (req, res) => {
     try {
         console.log('Order payload received:', JSON.stringify(req.body, null, 2));
         
-        let { shippingAddress, paymentMethod, items, subtotal, total } = req.body;
+        let { shippingAddress, paymentMethod, items, subtotal, total, couponCode } = req.body;
+        let discountAmount = 0;
+        let appliedCoupon = null;
         
         // If shipping address is not provided, try to get the default address
         if (!shippingAddress || Object.keys(shippingAddress).length === 0) {
@@ -111,16 +115,111 @@ exports.createOrder = async (req, res) => {
 
         console.log('Creating order with items:', orderItems);
         
+        // If coupon code is provided, verify and apply it
+        if (couponCode) {
+            try {
+                // Verify the coupon internally instead of making an HTTP request
+                const promotion = await Promotion.findOne({
+                    'userCoupons.couponCode': couponCode,
+                    active: true,
+                    startDate: { $lte: new Date() },
+                    endDate: { $gte: new Date() }
+                });
+
+                if (!promotion) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Invalid or expired coupon code'
+                    });
+                }
+
+                // Find the specific coupon in the userCoupons array
+                const userCoupon = promotion.userCoupons.find(coupon => 
+                    coupon.couponCode === couponCode && 
+                    coupon.userId.toString() === req.user.userId.toString() && 
+                    !coupon.isUsed
+                );
+
+                if (!userCoupon) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Coupon is not valid for this user or has already been used'
+                    });
+                }
+
+                // Check minimum purchase if applicable
+                if (promotion.minimumPurchase && totalAmount < promotion.minimumPurchase) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Minimum purchase of $${promotion.minimumPurchase} required for this coupon`
+                    });
+                }
+
+                // Calculate discount
+                if (promotion.discountType === 'percentage') {
+                    discountAmount = (totalAmount * promotion.discountValue) / 100;
+                } else { // fixed amount
+                    discountAmount = promotion.discountValue;
+                }
+
+                // Ensure discount doesn't exceed the total
+                if (discountAmount > totalAmount) {
+                    discountAmount = totalAmount;
+                }
+
+                // Update total amount after discount
+                totalAmount = totalAmount - discountAmount;
+                
+                // Save the applied coupon for later use
+                appliedCoupon = {
+                    promotionId: promotion._id,
+                    couponCode: couponCode,
+                    userCouponId: userCoupon._id
+                };
+            } catch (couponError) {
+                console.error('Error verifying coupon:', couponError);
+                return res.status(500).json({
+                    success: false,
+                    error: 'Error verifying coupon: ' + couponError.message
+                });
+            }
+        }
+
         // Create order
         const order = await Order.create({
             userId: req.user.userId,
             items: orderItems,
             shippingAddress,
             paymentMethod,
+            couponCode: couponCode || null,
+            discountAmount: discountAmount,
+            subtotalAmount: subtotal || totalAmount + discountAmount,
             totalAmount: total || totalAmount,
             paymentStatus: 'pending',
             orderStatus: 'processing'
         });
+
+        // If a coupon was applied, mark it as used
+        if (appliedCoupon) {
+            try {
+                await Promotion.updateOne(
+                    { 
+                        _id: appliedCoupon.promotionId,
+                        'userCoupons._id': appliedCoupon.userCouponId 
+                    },
+                    { 
+                        $set: { 
+                            'userCoupons.$.isUsed': true,
+                            'userCoupons.$.usedAt': new Date()
+                        },
+                        $inc: { usageCount: 1 }
+                    }
+                );
+            } catch (couponUpdateErr) {
+                console.error('Error marking coupon as used:', couponUpdateErr);
+                // Don't fail the order if coupon update fails
+            }
+        }
 
         // Clear cart if order was successful
         try {
