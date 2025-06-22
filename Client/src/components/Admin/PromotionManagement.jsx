@@ -41,106 +41,94 @@ const PromotionManagement = () => {
   const queryClient = useQueryClient();
   
   // Fetch promotions
-  const { data: promotionsData, isLoading: promotionsLoading } = useQuery(
-    ['promotions'],
-    async () => {
+  const { data: promotionsData, isLoading: promotionsLoading } = useQuery({
+    queryKey: ['promotions'],
+    queryFn: async () => {
       const response = await axios.get('/promotions');
       return response.data;
     },
-    {
-      staleTime: 60000, // 1 minute
-    }
-  );
+    staleTime: 60000, // 1 minute
+  });
   
   // Fetch users for coupon generation
-  const { data: usersData, isLoading: usersLoading } = useQuery(
-    ['users', userSearchTerm],
-    async () => {
+  const { data: usersData, isLoading: usersLoading } = useQuery({
+    queryKey: ['users', userSearchTerm],
+    queryFn: async () => {
       const response = await axios.get(`/auth/users?search=${userSearchTerm}`);
       return response.data;
     },
-    {
-      enabled: showCouponModal,
-      staleTime: 60000, // 1 minute
-    }
-  );
+    enabled: showCouponModal,
+    staleTime: 60000, // 1 minute
+  });
   
   // Create promotion mutation
-  const createPromotion = useMutation(
-    async (data) => {
+  const createPromotion = useMutation({
+    mutationFn: async (data) => {
       const response = await axios.post('/promotions', data);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['promotions']);
-        setShowAddModal(false);
-        resetForm();
-        toast.success('Promotion created successfully');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to create promotion');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promotions'] });
+      setShowAddModal(false);
+      resetForm();
+      toast.success('Promotion created successfully');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to create promotion');
     }
-  );
+  });
   
   // Update promotion mutation
-  const updatePromotion = useMutation(
-    async ({ id, data }) => {
+  const updatePromotion = useMutation({
+    mutationFn: async ({ id, data }) => {
       const response = await axios.put(`/promotions/${id}`, data);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['promotions']);
-        setShowEditModal(false);
-        resetForm();
-        toast.success('Promotion updated successfully');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to update promotion');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promotions'] });
+      setShowEditModal(false);
+      resetForm();
+      toast.success('Promotion updated successfully');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to update promotion');
     }
-  );
+  });
   
   // Delete promotion mutation
-  const deletePromotion = useMutation(
-    async (id) => {
+  const deletePromotion = useMutation({
+    mutationFn: async (id) => {
       const response = await axios.delete(`/promotions/${id}`);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['promotions']);
-        setShowDeleteModal(false);
-        setCurrentPromotion(null);
-        toast.success('Promotion deleted successfully');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to delete promotion');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promotions'] });
+      setShowDeleteModal(false);
+      setCurrentPromotion(null);
+      toast.success('Promotion deleted successfully');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to delete promotion');
     }
-  );
+  });
   
   // Generate coupons mutation
-  const generateCoupons = useMutation(
-    async (data) => {
+  const generateCoupons = useMutation({
+    mutationFn: async (data) => {
       const response = await axios.post('/promotions/generate-coupons', data);
       return response.data;
     },
-    {
-      onSuccess: (data) => {
-        queryClient.invalidateQueries(['promotions']);
-        setShowCouponModal(false);
-        setCouponFormData({ promotionId: '', userIds: [] });
-        setSelectedUsers([]);
-        toast.success(`Generated ${data.data.successCount} coupons successfully`);
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to generate coupons');
-      }
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['promotions'] });
+      setShowCouponModal(false);
+      setCouponFormData({ promotionId: '', userIds: [] });
+      setSelectedUsers([]);
+      toast.success(`Generated ${data.data.successCount} coupons successfully`);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to generate coupons');
     }
-  );
+  });
   
   // Reset form
   const resetForm = () => {

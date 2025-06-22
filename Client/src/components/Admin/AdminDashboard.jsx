@@ -20,9 +20,9 @@ const AdminDashboard = () => {
   const [unreadContactCount, setUnreadContactCount] = useState(0);
   
   // Fetch unread contact messages count
-  useQuery(
-    ['unread-contacts-count'],
-    async () => {
+  useQuery({
+    queryKey: ['unread-contacts-count'],
+    queryFn: async () => {
       try {
         const response = await axios.get('/contact?status=new&limit=1');
         setUnreadContactCount(response.data.pagination?.total || 0);
@@ -32,20 +32,18 @@ const AdminDashboard = () => {
         return { total: 0 };
       }
     },
-    {
-      refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
-      refetchOnWindowFocus: true
-    }
-  );
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    refetchOnWindowFocus: true
+  });
 
   // Fetch dashboard stats with React Query
-  const { data: stats, isLoading: statsLoading } = useQuery(
-    ['admin-stats'],
-    async () => {
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ['admin-stats'],
+    queryFn: async () => {
       try {
         // Get products count and top products
         const productsResponse = await axios.get('/products?limit=1');
-        const totalProducts = productsResponse.data.pagination.total;
+        const totalProducts = productsResponse.data.pagination.total || 0;
         
         // Get top products (sort by inventory count for now as a proxy for popularity)
         const topProductsResponse = await axios.get('/products?limit=5&sort=-inventoryCount');
@@ -57,14 +55,15 @@ const AdminDashboard = () => {
         
         // Calculate total sales and orders count from orders data
         const totalOrders = ordersResponse.data.pagination?.total || recentOrders.length;
-        const totalSales = recentOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+        const totalSales = recentOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
         
         // Get customers count (if available) or use a reasonable estimate
         let totalCustomers = 0;
         try {
           const customersResponse = await axios.get('/auth/users/count');
-          totalCustomers = customersResponse.data.count;
+          totalCustomers = customersResponse.data.count || 0;
         } catch (err) {
+          console.error('Error fetching customer count:', err);
           // If endpoint doesn't exist, use an estimate based on orders
           const uniqueCustomerIds = new Set();
           recentOrders.forEach(order => {
@@ -78,7 +77,7 @@ const AdminDashboard = () => {
           id: product._id,
           name: product.title,
           sales: Math.floor(Math.random() * 50) + 10, // Placeholder for sales data
-          stock: product.inventoryCount
+          stock: product.inventoryCount || 0
         }));
         
         return {
@@ -91,18 +90,16 @@ const AdminDashboard = () => {
         };
       } catch (error) {
         console.error('Error fetching admin stats:', error);
-        throw error;
+        throw new Error('Failed to fetch admin stats');
       }
     },
-    {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }
-  );
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  });
   
   // Fetch products for products tab
-  const { data: productsData, isLoading: productsLoading } = useQuery(
-    ['admin-products'],
-    async () => {
+  const { data: productsData, isLoading: productsLoading } = useQuery({
+    queryKey: ['admin-products'],
+    queryFn: async () => {
       try {
         const response = await axios.get('/products?limit=10');
         return response.data;
@@ -111,16 +108,14 @@ const AdminDashboard = () => {
         throw error;
       }
     },
-    {
-      enabled: activeTab === 'products' || activeTab === 'overview',
-      staleTime: 2 * 60 * 1000, // 2 minutes
-    }
-  );
+    enabled: activeTab === 'products' || activeTab === 'overview',
+    staleTime: 2 * 60 * 1000 // 2 minutes
+  });
   
   // Fetch orders for orders tab
-  const { data: ordersData, isLoading: ordersLoading } = useQuery(
-    ['admin-orders'],
-    async () => {
+  const { data: ordersData, isLoading: ordersLoading } = useQuery({
+    queryKey: ['admin-orders'],
+    queryFn: async () => {
       try {
         const response = await axios.get('/orders/admin/all?limit=10');
         return response.data;
@@ -129,16 +124,14 @@ const AdminDashboard = () => {
         throw error;
       }
     },
-    {
-      enabled: activeTab === 'orders' || activeTab === 'overview',
-      staleTime: 2 * 60 * 1000, // 2 minutes
-    }
-  );
+    enabled: activeTab === 'orders' || activeTab === 'overview',
+    staleTime: 2 * 60 * 1000 // 2 minutes
+  });
 
   // Fetch single order details
-  const { data: orderDetails, isLoading: orderDetailsLoading, refetch: refetchOrderDetails } = useQuery(
-    ['order-details', selectedOrder],
-    async () => {
+  const { data: orderDetails, isLoading: orderDetailsLoading, refetch: refetchOrderDetails } = useQuery({
+    queryKey: ['order-details', selectedOrder],
+    queryFn: async () => {
       try {
         const response = await axios.get(`/orders/${selectedOrder}`);
         return response.data.data;
@@ -147,41 +140,37 @@ const AdminDashboard = () => {
         throw error;
       }
     },
-    {
-      enabled: !!selectedOrder,
-      onSuccess: () => {
-        setShowOrderModal(true);
-      },
-      onError: () => {
-        toast.error('Failed to fetch order details');
-      }
+    enabled: !!selectedOrder,
+    onSuccess: () => {
+      setShowOrderModal(true);
+    },
+    onError: () => {
+      toast.error('Failed to fetch order details');
     }
-  );
+  });
 
   // Update order status mutation
   const queryClient = useQueryClient();
-  const updateOrderStatus = useMutation(
-    async ({ orderId, status }) => {
+  const updateOrderStatus = useMutation({
+    mutationFn: async ({ orderId, status }) => {
       const response = await axios.patch(`/orders/${orderId}/status`, {
         orderStatus: status
       });
       return response.data;
     },
-    {
-      onSuccess: () => {
-        // Invalidate and refetch orders queries
-        queryClient.invalidateQueries(['admin-orders']);
-        queryClient.invalidateQueries(['admin-stats']);
-        if (selectedOrder) {
-          refetchOrderDetails();
-        }
-        toast.success('Order status updated successfully');
+    onSuccess: () => {
+      // Invalidate and refetch orders queries
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      if (selectedOrder) {
+        refetchOrderDetails();
+      }
+      toast.success('Order status updated successfully');
       },
       onError: () => {
         toast.error('Failed to update order status');
       }
-    }
-  );
+  });
 
   // Get status badge class
   const getStatusBadgeClass = (status) => {

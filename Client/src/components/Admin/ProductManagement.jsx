@@ -54,28 +54,24 @@ const ProductManagement = () => {
   const queryClient = useQueryClient();
   
   // Fetch products
-  const { data: productsData, isLoading: productsLoading, error: productsError } = useQuery(
-    ['admin-products'],
-    async () => {
+  const { data: productsData, isLoading: productsLoading, error: productsError } = useQuery({
+    queryKey: ['admin-products'],
+    queryFn: async () => {
       const response = await axios.get('/products?limit=50');
       return response.data;
     },
-    {
-      staleTime: 60 * 1000, // 1 minute
-    }
-  );
+    staleTime: 60 * 1000, // 1 minute
+  });
   
   // Fetch categories for dropdown
-  const { data: categoriesData } = useQuery(
-    ['categories'],
-    async () => {
+  const { data: categoriesData } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
       const response = await axios.get('/categories');
       return response.data;
     },
-    {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }
-  );
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
   
   // Flatten category tree for dropdown
   const flattenedCategories = [];
@@ -94,183 +90,163 @@ const ProductManagement = () => {
   }
   
   // Fetch collections for dropdown
-  const { data: collectionsData } = useQuery(
-    ['collections'],
-    async () => {
+  const { data: collectionsData } = useQuery({
+    queryKey: ['collections'],
+    queryFn: async () => {
       const response = await axios.get('/collections');
       return response.data;
     },
-    {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }
-  );
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
   
   // Create product mutation
-  const createProductMutation = useMutation(
-    async (productData) => {
+  const createProductMutation = useMutation({
+    mutationFn: async (productData) => {
       const response = await axios.post('/products', productData);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-products']);
-        setShowAddModal(false);
-        resetForm();
-        toast.success('Product created successfully');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to create product');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      setShowAddModal(false);
+      resetForm();
+      toast.success('Product created successfully');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to create product');
     }
-  );
+  });
   
   // Update product mutation
-  const updateProductMutation = useMutation(
-    async ({ id, data }) => {
+  const updateProductMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
       const response = await axios.put(`/products/${id}`, data);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-products']);
-        setShowEditModal(false);
-        resetForm();
-        toast.success('Product updated successfully');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to update product');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      setShowEditModal(false);
+      resetForm();
+      toast.success('Product updated successfully');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to update product');
     }
-  );
+  });
   
   // Delete product mutation
-  const deleteProductMutation = useMutation(
-    async (id) => {
+  const deleteProductMutation = useMutation({
+    mutationFn: async (id) => {
       const response = await axios.delete(`/products/${id}`);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-products']);
-        setShowDeleteModal(false);
-        setCurrentProduct(null);
-        toast.success('Product deleted successfully');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to delete product');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      setShowDeleteModal(false);
+      setCurrentProduct(null);
+      toast.success('Product deleted successfully');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to delete product');
     }
-  );
+  });
   
   // Category mutations
-  const createCategoryMutation = useMutation(
-    async (categoryData) => {
+  const createCategoryMutation = useMutation({
+    mutationFn: async (categoryData) => {
       const response = await axios.post('/categories', categoryData);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['categories']);
-        setShowAddCategoryModal(false);
-        resetCategoryForm();
-        toast.success('Category created successfully');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to create category');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      setShowAddCategoryModal(false);
+      resetCategoryForm();
+      toast.success('Category created successfully');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to create category');
     }
-  );
+  });
   
-  const updateCategoryMutation = useMutation(
-    async ({ id, data }) => {
+  const updateCategoryMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
       const response = await axios.put(`/categories/${id}`, data);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['categories']);
-        setShowEditCategoryModal(false);
-        resetCategoryForm();
-        toast.success('Category updated successfully');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to update category');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      setShowEditCategoryModal(false);
+      resetCategoryForm();
+      toast.success('Category updated successfully');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to update category');
     }
-  );
+  });
   
-  const deleteCategoryMutation = useMutation(
-    async (id) => {
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id) => {
       const response = await axios.delete(`/categories/${id}`);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['categories']);
-        setShowDeleteCategoryModal(false);
-        setCurrentCategory(null);
-        toast.success('Category deleted successfully');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to delete category');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      setShowDeleteCategoryModal(false);
+      setCurrentCategory(null);
+      toast.success('Category deleted successfully');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to delete category');
     }
-  );
+  });
   
   // Collection mutations
-  const createCollectionMutation = useMutation(
-    async (collectionData) => {
+  const createCollectionMutation = useMutation({
+    mutationFn: async (collectionData) => {
       const response = await axios.post('/collections', collectionData);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['collections']);
-        setShowAddCollectionModal(false);
-        resetCollectionForm();
-        toast.success('Collection created successfully');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to create collection');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collections'] });
+      setShowAddCollectionModal(false);
+      resetCollectionForm();
+      toast.success('Collection created successfully');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to create collection');
     }
-  );
+  });
   
-  const updateCollectionMutation = useMutation(
-    async ({ id, data }) => {
+  const updateCollectionMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
       const response = await axios.put(`/collections/${id}`, data);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['collections']);
-        setShowEditCollectionModal(false);
-        resetCollectionForm();
-        toast.success('Collection updated successfully');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to update collection');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collections'] });
+      setShowEditCollectionModal(false);
+      resetCollectionForm();
+      toast.success('Collection updated successfully');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to update collection');
     }
-  );
+  });
   
-  const deleteCollectionMutation = useMutation(
-    async (id) => {
+  const deleteCollectionMutation = useMutation({
+    mutationFn: async (id) => {
       const response = await axios.delete(`/collections/${id}`);
       return response.data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['collections']);
-        setShowDeleteCollectionModal(false);
-        setCurrentCollection(null);
-        toast.success('Collection deleted successfully');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to delete collection');
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collections'] });
+      setShowDeleteCollectionModal(false);
+      setCurrentCollection(null);
+      toast.success('Collection deleted successfully');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to delete collection');
     }
-  );
+  });
   
   // Handle form input changes
   const handleInputChange = (e) => {
