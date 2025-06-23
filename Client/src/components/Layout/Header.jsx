@@ -1,27 +1,28 @@
 import { useState, useContext, useEffect } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { ShoppingBagIcon, UserIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
+import { Link, useNavigate } from 'react-router-dom'
+import { ShoppingBagIcon, UserIcon, Bars3Icon } from '@heroicons/react/24/outline'
 import AuthContext from '../../contexts/AuthContext'
 import CartContext from '../../contexts/CartContext'
 import logoImage from '../../assets/WhatsApp_Image_2025-06-18_at_4.21.26_PM-removebg-preview.png'
 import CartOffcanvas from '../Cart/CartOffcanvas'
+import NavbarOffcanvas from './NavbarOffcanvas'
 
 const Header = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [navbarOpen, setNavbarOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const { isAuthenticated, isAdmin, user, logout } = useContext(AuthContext)
   const { cart, getCartItemCount } = useContext(CartContext)
   const navigate = useNavigate()
   
-  // Toggle mobile menu
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(!mobileMenuOpen)
+  // Toggle navbar offcanvas
+  const toggleNavbar = () => {
+    setNavbarOpen(!navbarOpen)
   }
   
-  // Close mobile menu
-  const closeMobileMenu = () => {
-    setMobileMenuOpen(false)
+  // Close navbar offcanvas
+  const closeNavbar = () => {
+    setNavbarOpen(false)
   }
   
   // Toggle cart sidebar
@@ -47,50 +48,27 @@ const Header = () => {
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
       <div className="container-custom py-4">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center" onClick={closeMobileMenu}>
-            <img src={logoImage} alt="Beeget Fashion" className="h-10" />
-          </Link>
+        <div className="grid grid-cols-3 items-center">
+          {/* Menu Button (Left) */}
+          <div className="flex justify-start">
+            <button 
+              className="p-2" 
+              onClick={toggleNavbar}
+              aria-label="Toggle menu"
+            >
+              <Bars3Icon className="h-6 w-6 text-java-800" />
+            </button>
+          </div>
           
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <NavLink 
-              to="/" 
-              className={({ isActive }) => 
-                isActive ? 'text-java-400 font-medium' : 'text-java-800 hover:text-java-400 transition-colors'
-              }
-            >
-              Home
-            </NavLink>
-            <NavLink 
-              to="/shop" 
-              className={({ isActive }) => 
-                isActive ? 'text-java-400 font-medium' : 'text-java-800 hover:text-java-400 transition-colors'
-              }
-            >
-              Shop
-            </NavLink>
-            <NavLink 
-              to="/about" 
-              className={({ isActive }) => 
-                isActive ? 'text-java-400 font-medium' : 'text-java-800 hover:text-java-400 transition-colors'
-              }
-            >
-              About
-            </NavLink>
-            <NavLink 
-              to="/contact" 
-              className={({ isActive }) => 
-                isActive ? 'text-java-400 font-medium' : 'text-java-800 hover:text-java-400 transition-colors'
-              }
-            >
-              Contact
-            </NavLink>
-          </nav>
+          {/* Logo (Center) */}
+          <div className="flex justify-center">
+            <Link to="/" className="flex items-center">
+              <img src={logoImage} alt="Beeget Fashion" className="h-10" />
+            </Link>
+          </div>
           
-          {/* User Actions */}
-          <div className="flex items-center space-x-4">
+          {/* User Actions (Right) */}
+          <div className="flex items-center justify-end space-x-4">
             {/* Cart Icon with Item Count */}
             <button 
               onClick={toggleCart} 
@@ -146,138 +124,20 @@ const Header = () => {
             ) : (
               <Link 
                 to="/login" 
-                className="hidden md:block text-java-800 hover:text-java-400 transition-colors"
+                className="text-java-800 hover:text-java-400 transition-colors"
               >
-                Login / Register
+                <UserIcon className="h-6 w-6" />
               </Link>
             )}
-            
-            {/* Mobile Menu Button */}
-            <button 
-              className="md:hidden p-2" 
-              onClick={toggleMobileMenu}
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? (
-                <XMarkIcon className="h-6 w-6 text-java-800" />
-              ) : (
-                <Bars3Icon className="h-6 w-6 text-java-800" />
-              )}
-            </button>
           </div>
         </div>
-        
-        {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <nav className="md:hidden mt-4 pb-4">
-            <div className="flex flex-col space-y-4">
-              <NavLink 
-                to="/" 
-                className={({ isActive }) => 
-                  isActive ? 'text-java-400 font-medium' : 'text-java-800 hover:text-java-400 transition-colors'
-                }
-                onClick={closeMobileMenu}
-              >
-                Home
-              </NavLink>
-              <NavLink 
-                to="/shop" 
-                className={({ isActive }) => 
-                  isActive ? 'text-java-400 font-medium' : 'text-java-800 hover:text-java-400 transition-colors'
-                }
-                onClick={closeMobileMenu}
-              >
-                Shop
-              </NavLink>
-              <NavLink 
-                to="/about" 
-                className={({ isActive }) => 
-                  isActive ? 'text-java-400 font-medium' : 'text-java-800 hover:text-java-400 transition-colors'
-                }
-                onClick={closeMobileMenu}
-              >
-                About
-              </NavLink>
-              <NavLink 
-                to="/contact" 
-                className={({ isActive }) => 
-                  isActive ? 'text-java-400 font-medium' : 'text-java-800 hover:text-java-400 transition-colors'
-                }
-                onClick={closeMobileMenu}
-              >
-                Contact
-              </NavLink>
-              
-              {!isAuthenticated && (
-                <NavLink 
-                  to="/login" 
-                  className={({ isActive }) => 
-                    isActive ? 'text-java-400 font-medium' : 'text-java-800 hover:text-java-400 transition-colors'
-                  }
-                  onClick={closeMobileMenu}
-                >
-                  Login / Register
-                </NavLink>
-              )}
-              
-              {isAuthenticated && (
-                <>
-                  <NavLink 
-                    to="/account/profile" 
-                    className={({ isActive }) => 
-                      isActive ? 'text-java-400 font-medium' : 'text-java-800 hover:text-java-400 transition-colors'
-                    }
-                    onClick={closeMobileMenu}
-                  >
-                    My Profile
-                  </NavLink>
-                  <NavLink 
-                    to="/account/orders" 
-                    className={({ isActive }) => 
-                      isActive ? 'text-java-400 font-medium' : 'text-java-800 hover:text-java-400 transition-colors'
-                    }
-                    onClick={closeMobileMenu}
-                  >
-                    My Orders
-                  </NavLink>
-                  <NavLink 
-                    to="/account/wishlist" 
-                    className={({ isActive }) => 
-                      isActive ? 'text-java-400 font-medium' : 'text-java-800 hover:text-java-400 transition-colors'
-                    }
-                    onClick={closeMobileMenu}
-                  >
-                    My Wishlist
-                  </NavLink>
-                  {isAdmin && (
-                    <NavLink 
-                      to="/admin/dashboard" 
-                      className={({ isActive }) => 
-                        isActive ? 'text-java-400 font-medium' : 'text-java-800 hover:text-java-400 transition-colors'
-                      }
-                      onClick={closeMobileMenu}
-                    >
-                      Admin Dashboard
-                    </NavLink>
-                  )}
-                  <button 
-                    onClick={() => {
-                      logout()
-                      closeMobileMenu()
-                    }} 
-                    className="text-left text-red-600 hover:text-red-800 transition-colors"
-                  >
-                    Logout
-                  </button>
-                </>
-              )}
-            </div>
-          </nav>
-        )}
       </div>
       
       {/* Cart Offcanvas */}
       <CartOffcanvas isOpen={cartOpen} onClose={closeCart} />
+      
+      {/* Navbar Offcanvas */}
+      <NavbarOffcanvas isOpen={navbarOpen} onClose={closeNavbar} />
     </header>
   )
 }

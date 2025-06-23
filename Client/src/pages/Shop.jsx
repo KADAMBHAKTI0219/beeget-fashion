@@ -8,13 +8,15 @@ import useWishlist from '../hooks/useWishlist'
 import Button from '../components/Common/Button'
 import productImages from '../assets/product-images'
 import { toast } from 'react-toastify'
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
+import { ChevronLeftIcon, ChevronRightIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline'
+import FilterSidebar from '../components/Shop/FilterSidebar'
 
 const Shop = () => {
   const { isAuthenticated } = useAuth()
   const { addToCart } = useCart()
   const { addToWishlist, isInWishlist, removeFromWishlist } = useWishlist()
   const [searchParams, setSearchParams] = useSearchParams()
+  const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false)
   const [filters, setFilters] = useState({
     category: searchParams.get('category') || '',
     sort: searchParams.get('sort') || 'newest',
@@ -138,127 +140,25 @@ const Shop = () => {
           </form>
         </div>
         
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar Filters */}
-          <div className="w-full lg:w-1/4 bg-white p-6 rounded-lg shadow-sm h-fit">
-            <h2 className="text-xl font-semibold mb-4">Filters</h2>
-            
-            {/* Category Filter */}
-            <div className="mb-6">
-              <h3 className="text-lg font-medium mb-2">Category</h3>
-              <div className="space-y-2">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="category"
-                    value=""
-                    checked={filters.category === ''}
-                    onChange={() => handleFilterChange('category', '')}
-                    className="h-4 w-4 text-teal border-gray-300 focus:ring-teal"
-                  />
-                  <span className="ml-2">All</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="category"
-                    value="women"
-                    checked={filters.category === 'women'}
-                    onChange={() => handleFilterChange('category', 'women')}
-                    className="h-4 w-4 text-teal border-gray-300 focus:ring-teal"
-                  />
-                  <span className="ml-2">Women</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="category"
-                    value="men"
-                    checked={filters.category === 'men'}
-                    onChange={() => handleFilterChange('category', 'men')}
-                    className="h-4 w-4 text-teal border-gray-300 focus:ring-teal"
-                  />
-                  <span className="ml-2">Men</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="category"
-                    value="accessories"
-                    checked={filters.category === 'accessories'}
-                    onChange={() => handleFilterChange('category', 'accessories')}
-                    className="h-4 w-4 text-teal border-gray-300 focus:ring-teal"
-                  />
-                  <span className="ml-2">Accessories</span>
-                </label>
-              </div>
-            </div>
-            
-            {/* Price Range Filter */}
-            <div className="mb-6">
-              <h3 className="text-lg font-medium mb-2">Price Range</h3>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label htmlFor="minPrice" className="block text-sm text-gray-600 mb-1">Min ($)</label>
-                  <input
-                    type="number"
-                    id="minPrice"
-                    value={filters.minPrice}
-                    onChange={(e) => handleFilterChange('minPrice', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-teal focus:border-teal"
-                    min="0"
-                    step="1"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="maxPrice" className="block text-sm text-gray-600 mb-1">Max ($)</label>
-                  <input
-                    type="number"
-                    id="maxPrice"
-                    value={filters.maxPrice}
-                    onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-teal focus:border-teal"
-                    min="0"
-                    step="1"
-                  />
-                </div>
-              </div>
-            </div>
-            
-            {/* Sort Filter */}
-            <div>
-              <h3 className="text-lg font-medium mb-2">Sort By</h3>
-              <select
-                value={filters.sort}
-                onChange={(e) => handleFilterChange('sort', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-teal focus:border-teal"
-              >
-                <option value="newest">Newest</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="name-asc">Name: A to Z</option>
-                <option value="name-desc">Name: Z to A</option>
-              </select>
-            </div>
-            
-            {/* Reset Filters Button */}
-            <div className="mt-8">
-              <Button
-                variant="secondary"
-                fullWidth
-                onClick={() => {
-                  setFilters({
-                    category: '',
-                    sort: 'newest',
-                    minPrice: '',
-                    maxPrice: '',
-                    search: ''
-                  })
-                }}
-              >
-                Reset Filters
-              </Button>
-            </div>
+        {/* Filter Sidebar */}
+        <FilterSidebar 
+          isOpen={isFilterSidebarOpen} 
+          onClose={() => setIsFilterSidebarOpen(false)} 
+          filters={filters} 
+          handleFilterChange={handleFilterChange} 
+        />
+        
+        <div className="flex flex-col gap-8">
+          {/* Filter Button */}
+          <div className="flex justify-end mb-2">
+            <Button 
+              variant="secondary" 
+              className="flex items-center gap-2"
+              onClick={() => setIsFilterSidebarOpen(true)}
+            >
+              <AdjustmentsHorizontalIcon className="h-5 w-5" />
+              <span>Filters</span>
+            </Button>
           </div>
           
           {/* Product Grid */}
