@@ -115,13 +115,17 @@ const Cart = () => {
                 <div key={`${item.id}-${item.size}-${item.color}`} className="grid grid-cols-1 sm:grid-cols-12 gap-4 p-4 border-b border-gray-200 items-center">
                   {/* Product Info */}
                   <div className="col-span-6 flex items-center space-x-4">
-                    <img 
-                      src={item.image} 
-                      alt={item.name} 
-                      className="w-16 h-16 object-cover rounded-md"
-                    />
+                    <Link to={`/product/${item.slug}`}>
+                      <img 
+                        src={item.image} 
+                        alt={item.name} 
+                        className="w-16 h-16 object-cover rounded-md cursor-pointer hover:opacity-80 transition-opacity"
+                      />
+                    </Link>
                     <div>
-                      <h3 className="font-medium text-charcoal">{item.name}</h3>
+                      <Link to={`/product/${item.slug || item.id}`}>
+                        <h3 className="font-medium text-charcoal hover:text-teal cursor-pointer">{item.name}</h3>
+                      </Link>
                       <div className="text-sm text-gray-500 mt-1">
                         {item.size && <span className="mr-2">Size: {item.size}</span>}
                         {item.color && <span>Color: {item.color}</span>}
@@ -203,7 +207,20 @@ const Cart = () => {
                     Clear Cart
                   </Button>
                 </div>
-                <Button size="sm" onClick={() => window.location.reload()}>
+                <Button size="sm" onClick={() => {
+                  // Update all cart items by re-applying their current quantities
+                  cartItems.forEach(item => {
+                    updateQuantity(item.id, item.quantity, item.size, item.color);
+                  });
+                  toast.success('Cart updated successfully!', {
+                    position: "top-right",
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true
+                  });
+                }}>
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>

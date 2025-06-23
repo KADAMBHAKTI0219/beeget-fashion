@@ -277,6 +277,58 @@ export const AuthProvider = ({ children }) => {
     }
   }
   
+  // Change password function
+  const changePassword = async (currentPassword, newPassword) => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Call the API to change password
+      const response = await axios.post('/auth/change-password', { 
+        currentPassword, 
+        newPassword 
+      })
+      
+      return { 
+        success: true, 
+        message: response.data.message || 'Password changed successfully' 
+      }
+    } catch (err) {
+      console.error('Change password error:', err)
+      const errorMessage = err.response?.data?.message || 'Failed to change password. Please try again.'
+      setError(errorMessage)
+      return { success: false, error: errorMessage }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Reset password function (with token validation)
+  const resetPassword = async (resetToken, newPassword) => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Call the API to reset password
+      const response = await axios.post('/auth/reset-password', { 
+        resetToken, 
+        newPassword 
+      })
+      
+      return { 
+        success: true, 
+        message: response.data.message || 'Password reset successfully' 
+      }
+    } catch (err) {
+      console.error('Reset password error:', err)
+      const errorMessage = err.response?.data?.message || 'Failed to reset password. Please try again.'
+      setError(errorMessage)
+      return { success: false, error: errorMessage }
+    } finally {
+      setLoading(false)
+    }
+  }
+  
   return (
     <AuthContext.Provider
       value={{
@@ -289,6 +341,8 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateProfile,
         forgotPassword,
+        changePassword,
+        resetPassword,
         isAuthenticated,
         isAdmin
       }}

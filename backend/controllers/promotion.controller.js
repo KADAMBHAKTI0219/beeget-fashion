@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Promotion = require('../models/promotion.model');
 const Product = require('../models/product.model');
 const Category = require('../models/category.model');
@@ -428,8 +429,6 @@ exports.deletePromotion = async (req, res) => {
         });
     }
 };
-
-const mongoose = require('mongoose');
 
 // Helper function to generate a unique coupon code
 const generateCouponCode = (prefix = '', length = 8) => {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Button from '../components/Common/Button'
 import Input from '../components/Common/Input'
@@ -13,6 +13,23 @@ const Contact = () => {
     message: ''
   })
   const [formStatus, setFormStatus] = useState(null)
+  const [errors, setErrors] = useState({})
+  
+  // Reset errors when form data changes
+  useEffect(() => {
+    if (Object.keys(errors).length > 0) {
+      const newErrors = {...errors}
+      
+      // Clear specific field errors when user types
+      Object.keys(formData).forEach(field => {
+        if (formData[field] && newErrors[field]) {
+          delete newErrors[field]
+        }
+      })
+      
+      setErrors(newErrors)
+    }
+  }, [formData, errors])
   
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -22,12 +39,40 @@ const Contact = () => {
     }))
   }
   
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return re.test(email)
+  }
+  
+  const validateForm = () => {
+    const newErrors = {}
+    
+    // Check required fields
+    if (!formData.name.trim()) newErrors.name = 'Name is required'
+    if (!formData.email.trim()) newErrors.email = 'Email is required'
+    if (!formData.subject.trim()) newErrors.subject = 'Subject is required'
+    if (!formData.message.trim()) newErrors.message = 'Message is required'
+    
+    // Validate email format
+    if (formData.email && !validateEmail(formData.email)) {
+      newErrors.email = 'Please enter a valid email address'
+    }
+    
+    // Validate message length
+    if (formData.message && formData.message.trim().length < 10) {
+      newErrors.message = 'Message must be at least 10 characters long'
+    }
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+  
   const handleSubmit = async (e) => {
     e.preventDefault()
     
     // Validate form data
-    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
-      toast.error('Please fill all required fields')
+    if (!validateForm()) {
+      toast.error('Please fix the errors in the form')
       return
     }
     
@@ -217,6 +262,8 @@ const Contact = () => {
                       type="text"
                       value={formData.name}
                       onChange={handleChange}
+                      error={errors.name}
+                      placeholder="John Doe"
                       required
                     />
                   </div>
@@ -227,6 +274,8 @@ const Contact = () => {
                       type="email"
                       value={formData.email}
                       onChange={handleChange}
+                      error={errors.email}
+                      placeholder="johndoe@example.com"
                       required
                     />
                   </div>
@@ -239,6 +288,8 @@ const Contact = () => {
                     type="text"
                     value={formData.subject}
                     onChange={handleChange}
+                    error={errors.subject}
+                    placeholder="Your inquiry subject"
                     required
                   />
                 </div>
@@ -246,17 +297,23 @@ const Contact = () => {
                 <div>
                   <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
                     Message
+                    <span className="text-red-500 ml-1">*</span>
                   </label>
                   <textarea
                     id="message"
                     name="message"
                     rows={6}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-teal focus:border-teal"
+                    className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal focus:border-teal ${errors.message ? 'border-red-300' : 'border-gray-300'}`}
                     placeholder="How can we help you?"
                     value={formData.message}
                     onChange={handleChange}
                     required
                   />
+                  {errors.message && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.message}
+                    </p>
+                  )}
                 </div>
                 
                 <div>

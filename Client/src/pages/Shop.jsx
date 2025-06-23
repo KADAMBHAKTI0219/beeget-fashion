@@ -329,34 +329,22 @@ const Shop = () => {
                         </a>
                         <p className="text-gray-600 mt-1">${product.price.toFixed(2)}</p>
                         <div className="mt-4">
-                          {isAuthenticated ? (
-                            <Button 
-                              fullWidth
-                              onClick={(e) => {
-                                e.preventDefault()
-                                // Get the image URL from product
-                                const imageUrl = product.images && product.images.length > 0 
-                                  ? product.images[0] 
-                                  : productImages.tshirtWhite
-                                
-                                // Ensure product has consistent id, name, and image properties
-                                const enhancedProduct = {
-                                  ...product,
-                                  id: product.id || product._id,
-                                  _id: product.id || product._id,
-                                  name: product.title || product.name,
-                                  title: product.title || product.name,
-                                  image: imageUrl
-                                }
-                                addToCart(enhancedProduct)
-                              }}
-                            >
-                              Add to Cart
-                            </Button>
-                          ) : (
+                          <Button 
+                            fullWidth
+                            onClick={(e) => {
+                              e.preventDefault()
+                              // Navigate to product detail page
+                              window.location.href = `/product/${product.slug}`
+                            }}
+                          >
+                            View Details
+                          </Button>
+                          
+                          {!isAuthenticated && (
                             <Button 
                               fullWidth
                               variant="secondary"
+                              className="mt-2"
                               onClick={(e) => {
                                 e.preventDefault();
                                 // Get product ID (handle both id and _id)
@@ -390,15 +378,6 @@ const Shop = () => {
                                   
                                   addToWishlist(enhancedProduct);
                                   toast.success(`${productName} added to wishlist!`, {
-                                    position: "top-right",
-                                    autoClose: 3000,
-                                    hideProgressBar: false,
-                                    closeOnClick: true,
-                                    pauseOnHover: true,
-                                    draggable: true
-                                  });
-                                  
-                                  toast.info(`Please login to add to cart.`, {
                                     position: "top-right",
                                     autoClose: 3000,
                                     hideProgressBar: false,

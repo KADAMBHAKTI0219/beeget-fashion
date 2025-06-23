@@ -34,7 +34,7 @@ const passwordSchema = yup.object({
 }).required()
 
 const AccountSettings = () => {
-  const { user, updateProfile } = useAuth()
+  const { user, updateProfile, changePassword } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState('profile')
@@ -118,10 +118,8 @@ const AccountSettings = () => {
     setUpdateStatus({ loading: true, success: false, error: '' })
     
     try {
-      // Remove confirmPassword before sending to API
-      const { confirmPassword, ...passwordData } = data
-      
-      const result = await updateProfile(passwordData)
+      // Use the changePassword function from AuthContext
+      const result = await changePassword(data.currentPassword, data.newPassword)
       
       if (result.success) {
         setUpdateStatus({

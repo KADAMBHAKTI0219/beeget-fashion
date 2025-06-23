@@ -55,12 +55,15 @@ export const CartProvider = ({ children }) => {
           // Transform backend cart format to frontend format
           const backendCart = response.data.data.items.map(item => ({
             id: item.productId._id,
-            _id: item.productId._id,
-            name: item.productId.title,
-            title: item.productId.title,
-            price: item.productId.price,
-            image: item.productId.images && item.productId.images.length > 0 ? item.productId.images[0] : null,
+            _id: item._id, // Store the cart item ID for future operations
+            name: item.productDetails?.title || item.productId.title,
+            title: item.productDetails?.title || item.productId.title,
+            price: item.productDetails?.price || item.productId.price,
+            image: item.productDetails?.image || (item.productId.images && item.productId.images.length > 0 ? item.productId.images[0] : null),
+            slug: item.productDetails?.slug || item.productId.slug,
             quantity: item.quantity,
+            size: item.size || null,
+            color: item.color || null,
             addedAt: new Date().toISOString()
           }))
           setCart(backendCart)
@@ -137,10 +140,11 @@ export const CartProvider = ({ children }) => {
           const backendCart = response.data.data.items.map(item => ({
             id: item.productId._id,
             _id: item._id, // Store the cart item ID for future operations
-            name: item.productId.title,
-            title: item.productId.title,
-            price: item.productId.price,
-            image: item.productId.images && item.productId.images.length > 0 ? item.productId.images[0] : null,
+            name: item.productDetails?.title || item.productId.title,
+            title: item.productDetails?.title || item.productId.title,
+            price: item.productDetails?.price || item.productId.price,
+            slug: item.productDetails?.slug || item.productId.slug,
+            image: item.productDetails?.image || (item.productId.images && item.productId.images.length > 0 ? item.productId.images[0] : null),
             quantity: item.quantity,
             size: item.size || null,
             color: item.color || null,
