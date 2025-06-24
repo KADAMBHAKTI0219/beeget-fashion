@@ -45,7 +45,7 @@ const FilterSidebar = ({ isOpen, onClose, filters, handleFilterChange }) => {
         <>
           {/* Backdrop */}
           <motion.div
-            className="fixed inset-0 bg-black bg-opacity-50 z-60"
+            className="fixed inset-0 bg-black bg-opacity-50 z-[100]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -54,7 +54,7 @@ const FilterSidebar = ({ isOpen, onClose, filters, handleFilterChange }) => {
           
           {/* Sidebar panel */}
           <motion.div
-            className="fixed top-0 right-0 h-full w-full sm:w-80 bg-white shadow-lg z-60 flex flex-col"
+            className="fixed top-0 right-0 h-full w-full sm:w-80 bg-white shadow-lg z-[100] flex flex-col"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
