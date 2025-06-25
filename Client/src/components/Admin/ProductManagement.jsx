@@ -307,7 +307,7 @@ const ProductManagement = () => {
     });
   };
   
-  // Open edit modal with product data
+  // Open edit modal with product data - immediately open modal
   const handleEditClick = (product) => {
     setCurrentProduct(product);
     setFormData({
@@ -324,7 +324,7 @@ const ProductManagement = () => {
     setShowEditModal(true);
   };
   
-  // Open delete confirmation modal
+  // Open delete confirmation modal - immediately open modal
   const handleDeleteClick = (product) => {
     setCurrentProduct(product);
     setShowDeleteModal(true);

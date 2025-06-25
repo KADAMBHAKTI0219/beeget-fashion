@@ -35,7 +35,7 @@ const CollectionManagement = () => {
     setCurrentCollection(null);
   };
   
-  // Open edit modal with collection data
+  // Open edit modal with collection data - immediately open modal
   const handleEditClick = (collection) => {
     setCurrentCollection(collection);
     setFormData({
@@ -256,7 +256,7 @@ const CollectionManagement = () => {
     });
   };
   
-  // Open delete confirmation modal
+  // Open delete confirmation modal - immediately open modal
   const handleDeleteClick = (collection) => {
     setCurrentCollection(collection);
     setShowDeleteModal(true);

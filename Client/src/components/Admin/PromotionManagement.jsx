@@ -159,7 +159,7 @@ const PromotionManagement = () => {
     });
   };
   
-  // Handle edit button click
+  // Handle edit button click - immediately open modal
   const handleEditClick = (promotion) => {
     setCurrentPromotion(promotion);
     setFormData({
@@ -181,13 +181,13 @@ const PromotionManagement = () => {
     setShowEditModal(true);
   };
   
-  // Handle delete button click
+  // Handle delete button click - immediately open modal
   const handleDeleteClick = (promotion) => {
     setCurrentPromotion(promotion);
     setShowDeleteModal(true);
   };
   
-  // Handle coupon generation button click
+  // Handle coupon generation button click - immediately open modal
   const handleCouponClick = (promotion) => {
     setCurrentPromotion(promotion);
     setCouponFormData({

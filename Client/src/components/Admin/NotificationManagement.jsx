@@ -97,7 +97,7 @@ const NotificationManagement = () => {
 
   const handleViewNotification = (notification) => {
     setSelectedNotification(notification);
-    setShowViewModal(true);
+    setShowViewModal(true); // Immediately open modal
   };
 
   const handleDeleteNotification = (id) => {

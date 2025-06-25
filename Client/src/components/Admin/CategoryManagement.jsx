@@ -111,7 +111,7 @@ const CategoryManagement = () => {
     });
   };
   
-  // Open edit modal with category data
+  // Open edit modal with category data - immediately open modal
   const handleEditClick = (category) => {
     setCurrentCategory(category);
     setFormData({
@@ -125,7 +125,7 @@ const CategoryManagement = () => {
     setShowEditModal(true);
   };
   
-  // Open delete confirmation modal
+  // Open delete confirmation modal - immediately open modal
   const handleDeleteClick = (category) => {
     setCurrentCategory(category);
     setShowDeleteModal(true);

@@ -172,7 +172,7 @@ const CmsManagement = () => {
 
   const handleViewPage = (page) => {
     setSelectedPage(page);
-    setShowViewModal(true);
+    setShowViewModal(true); // Immediately open modal
   };
 
   const handleEditPage = (page) => {
@@ -189,7 +189,7 @@ const CmsManagement = () => {
         order: 0
       }]
     });
-    setShowEditModal(true);
+    setShowEditModal(true); // Immediately open modal
   };
 
   const handleDeletePage = (id) => {
