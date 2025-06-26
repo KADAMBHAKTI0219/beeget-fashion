@@ -41,6 +41,52 @@ const NavbarOffcanvas = ({ isOpen, onClose }) => {
   }
   
   return (
+    <>
+    {/* Mobile Bottom Navigation Bar - visible only on small screens */}
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 sm:hidden shadow-lg">
+      <div className="flex justify-around items-center py-2">
+        <NavLink to="/" className={({ isActive }) => `flex flex-col items-center px-3 py-1 relative ${isActive ? 'text-java-600' : 'text-gray-600'}`}>
+          {({ isActive }) => (
+            <>
+              <span className={`absolute -top-2 w-10 h-1 rounded-full bg-java-600 ${isActive ? 'opacity-100' : 'opacity-0'}`}></span>
+              <HomeIcon className="h-6 w-6" />
+              <span className="text-xs mt-1">Home</span>
+            </>
+          )}
+        </NavLink>
+        
+        <NavLink to="/shop" className={({ isActive }) => `flex flex-col items-center px-3 py-1 relative ${isActive ? 'text-java-600' : 'text-gray-600'}`}>
+          {({ isActive }) => (
+            <>
+              <span className={`absolute -top-2 w-10 h-1 rounded-full bg-java-600 ${isActive ? 'opacity-100' : 'opacity-0'}`}></span>
+              <ShoppingBagIcon className="h-6 w-6" />
+              <span className="text-xs mt-1">Shop</span>
+            </>
+          )}
+        </NavLink>
+        
+        <NavLink to="/about" className={({ isActive }) => `flex flex-col items-center px-3 py-1 relative ${isActive ? 'text-java-600' : 'text-gray-600'}`}>
+          {({ isActive }) => (
+            <>
+              <span className={`absolute -top-2 w-10 h-1 rounded-full bg-java-600 ${isActive ? 'opacity-100' : 'opacity-0'}`}></span>
+              <InformationCircleIcon className="h-6 w-6" />
+              <span className="text-xs mt-1">About</span>
+            </>
+          )}
+        </NavLink>
+        
+        <NavLink to="/contact" className={({ isActive }) => `flex flex-col items-center px-3 py-1 relative ${isActive ? 'text-java-600' : 'text-gray-600'}`}>
+          {({ isActive }) => (
+            <>
+              <span className={`absolute -top-2 w-10 h-1 rounded-full bg-java-600 ${isActive ? 'opacity-100' : 'opacity-0'}`}></span>
+              <EnvelopeIcon className="h-6 w-6" />
+              <span className="text-xs mt-1">Contact</span>
+            </>
+          )}
+        </NavLink>
+      </div>
+    </div>
+    
     <AnimatePresence>
       {isOpen && (
         <>
@@ -55,19 +101,25 @@ const NavbarOffcanvas = ({ isOpen, onClose }) => {
           
           {/* Navbar panel */}
           <motion.div
-            className="fixed top-0 left-0 h-full w-full sm:w-80 bg-white shadow-lg z-50 flex flex-col"
-            initial={{ x: '-100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '-100%' }}
+            className="fixed bottom-0 h-[85vh] sm:h-full sm:top-0 sm:left-0 w-full sm:w-80 bg-white shadow-lg z-50 flex flex-col rounded-t-3xl sm:rounded-none"
+            initial={{ y: '100%', x: 0, opacity: 1 }}
+            animate={{ y: 0, x: 0, opacity: 1 }}
+            exit={{ y: '100%', x: 0, opacity: 1 }}
             transition={{ type: 'tween', duration: 0.3 }}
           >
             {/* Header */}
             <motion.div 
-              className="flex items-center justify-between p-4 border-b border-gray-200"
+              className="flex flex-col border-b border-gray-200"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
+              {/* Mobile handle - visible only on small screens */}
+              <div className="sm:hidden flex justify-center pt-1 pb-2">
+                <div className="w-16 h-1 bg-gray-300 rounded-full"></div>
+              </div>
+              
+              <div className="flex items-center justify-between p-4">
               <motion.h2 
                 className="text-xl font-medium"
                 initial={{ opacity: 0 }}
@@ -85,6 +137,7 @@ const NavbarOffcanvas = ({ isOpen, onClose }) => {
               >
                 <XMarkIcon className="h-6 w-6" />
               </motion.button>
+              </div>
             </motion.div>
             
             {/* Navigation Links */}
@@ -104,7 +157,7 @@ const NavbarOffcanvas = ({ isOpen, onClose }) => {
               >
                 {/* Main Navigation */}
                 <motion.div 
-                  className="space-y-2"
+                  className="space-y-2 sm:block hidden"
                   variants={{
                     hidden: { opacity: 0 },
                     visible: { opacity: 1 }
@@ -365,6 +418,7 @@ const NavbarOffcanvas = ({ isOpen, onClose }) => {
         </>
       )}
     </AnimatePresence>
+    </>
   )
 }
 

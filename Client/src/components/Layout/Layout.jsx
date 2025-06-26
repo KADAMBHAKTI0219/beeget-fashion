@@ -54,8 +54,8 @@ const Layout = ({ hideHeader, children }) => {
         {children || <Outlet />}
       </main>
       
-      {/* Footer */}
-      <Footer />
+      {/* Footer - hidden on admin pages */}
+      {!isAdminPage && <Footer />}
     </div>
   )
 }

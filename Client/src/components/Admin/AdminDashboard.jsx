@@ -8,12 +8,15 @@ import CustomerManagement from './CustomerManagement';
 import ContactManagement from './ContactManagement';
 import NotificationManagement from './NotificationManagement';
 import CmsManagement from './CmsManagement';
+import ReturnManagement from './ReturnManagement';
 import PromotionManagement from './PromotionManagement';
 import Button from '../Common/Button';
 import { toast } from 'react-hot-toast';
 import Modal from '../Common/Modal';
 import AdminOffcanvas from './AdminOffcanvas';
-import { Bars3Icon } from '@heroicons/react/24/outline';
+import { Bars3Icon, HomeIcon } from '@heroicons/react/24/outline';
+import { useNavigate } from 'react-router-dom';
+import useAuth from '../../hooks/useAuth';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('products');
@@ -21,6 +24,8 @@ const AdminDashboard = () => {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [unreadContactCount, setUnreadContactCount] = useState(0);
   const [isOffcanvasOpen, setIsOffcanvasOpen] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuth();
   
   // Fetch unread contact messages count
   useQuery({
@@ -230,6 +235,7 @@ const AdminDashboard = () => {
     { id: 'collections', label: 'Collections' },
     { id: 'promotions', label: 'Promotions' },
     { id: 'orders', label: 'Orders' },
+    { id: 'returns', label: 'Returns' },
     { id: 'customers', label: 'Customers' },
     { id: 'contacts', label: `Messages ${unreadContactCount > 0 ? `(${unreadContactCount})` : ''}` },
     { id: 'notifications', label: 'Notifications' },
@@ -736,6 +742,8 @@ const AdminDashboard = () => {
         return <PromotionManagement />;
       case 'orders':
         return renderOrders();
+      case 'returns':
+        return <ReturnManagement />;
       case 'customers':
         return renderCustomers();
       case 'contacts':
@@ -751,8 +759,8 @@ const AdminDashboard = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="flex flex-col w-64 bg-white border-r border-gray-200">
+      {/* Sidebar - hidden on mobile */}
+      <div className="hidden md:flex flex-col w-64 bg-white border-r border-gray-200">
         <div className="p-4 border-b border-gray-200">
           <h2 className="text-lg font-medium text-gray-800">Admin Dashboard</h2>
         </div>
@@ -775,6 +783,16 @@ const AdminDashboard = () => {
             ))}
           </nav>
         </div>
+        {/* Go to Home button at bottom of sidebar */}
+        <div className="p-3 border-t border-gray-200">
+          <button
+            onClick={() => navigate('/')}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors duration-150 text-sm font-medium"
+          >
+            <HomeIcon className="h-4 w-4" />
+            Go to website 
+          </button>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -782,8 +800,15 @@ const AdminDashboard = () => {
         {/* Header with welcome message and user info */}
         <div className="bg-white border-b border-gray-200 p-4 flex justify-between items-center">
           <div className="flex items-center">
+            {/* Mobile menu button - only visible on mobile */}
+            <button 
+              className="md:hidden mr-3 text-gray-600 hover:text-gray-800"
+              onClick={() => setIsOffcanvasOpen(true)}
+            >
+              <Bars3Icon className="h-6 w-6" />
+            </button>
             <div>
-              <h1 className="text-xl font-medium text-gray-800">Welcome Back, Gulraiz.</h1>
+              <h1 className="text-xl font-medium text-gray-800">Welcome Back, {user?.name ? user.name.split(' ')[0] : 'Admin'}.</h1>
               <p className="text-sm text-gray-500">Welcome to the Dashboard</p>
             </div>
           </div>
@@ -795,9 +820,9 @@ const AdminDashboard = () => {
             </button>
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium text-sm">
-                GK
+                {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'A'}
               </div>
-              <span className="text-sm font-medium">Gulraiz Khan</span>
+              <span className="text-sm font-medium">{user?.name || 'Admin'}</span>
             </div>
           </div>
         </div>
@@ -819,7 +844,7 @@ const AdminDashboard = () => {
         </div>
         
         {/* Main content area */}
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-auto p-4 pb-20 md:pb-4">
           {renderTabContent()}
         </div> {/* End of main content area */}
       </div> {/* End of flex-1 flex flex-col overflow-hidden */}
@@ -832,6 +857,64 @@ const AdminDashboard = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
       />
+      
+      {/* Mobile Bottom Navbar - only visible on mobile */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
+        <div className="grid grid-cols-5 h-16">
+          {/* Dashboard */}
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`flex flex-col items-center justify-center ${activeTab === 'overview' ? 'text-blue-600' : 'text-gray-600'}`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+            </svg>
+            <span className="text-xs mt-1">Overview</span>
+          </button>
+          
+          {/* Products */}
+          <button
+            onClick={() => setActiveTab('products')}
+            className={`flex flex-col items-center justify-center ${activeTab === 'products' ? 'text-blue-600' : 'text-gray-600'}`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            <span className="text-xs mt-1">Products</span>
+          </button>
+          
+          {/* Orders */}
+          <button
+            onClick={() => setActiveTab('orders')}
+            className={`flex flex-col items-center justify-center ${activeTab === 'orders' ? 'text-blue-600' : 'text-gray-600'}`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <span className="text-xs mt-1">Orders</span>
+          </button>
+          
+          {/* Customers */}
+          <button
+            onClick={() => setActiveTab('customers')}
+            className={`flex flex-col items-center justify-center ${activeTab === 'customers' ? 'text-blue-600' : 'text-gray-600'}`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <span className="text-xs mt-1">Customers</span>
+          </button>
+          
+          {/* Home */}
+          <button
+            onClick={() => navigate('/')}
+            className="flex flex-col items-center justify-center text-gray-600"
+          >
+            <HomeIcon className="h-5 w-5" />
+            <span className="text-xs mt-1">Home</span>
+          </button>
+        </div>
+      </div>
 
       {/* Order Details Modal */}
       {showOrderModal && orderDetails && (

@@ -6,6 +6,7 @@ import AccountOrders from './AccountOrders'
 import AccountWishlist from './AccountWishlist'
 import AccountAddresses from './AccountAddresses'
 import AccountSettings from './AccountSettings'
+import AccountReturns from '../components/Account/AccountReturns'
 import api from '../utils/api'
 import { useQuery } from '@tanstack/react-query'
 
@@ -16,6 +17,7 @@ const Account = () => {
     // Set active tab based on current path
     const path = location.pathname
     if (path.includes('/account/orders')) return 'orders'
+    if (path.includes('/account/returns')) return 'returns'
     if (path.includes('/account/wishlist')) return 'wishlist'
     if (path.includes('/account/addresses')) return 'addresses'
     if (path.includes('/account/settings')) return 'settings'
@@ -118,6 +120,19 @@ const Account = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                         </svg>
                         Orders
+                      </div>
+                    </button>
+                  </li>
+                  <li>
+                    <button 
+                      className={`block w-full text-left px-4 py-2 rounded-md ${activeTab === 'returns' ? 'bg-teal-50 text-teal-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                      onClick={() => setActiveTab('returns')}
+                    >
+                      <div className="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z" />
+                        </svg>
+                        Returns
                       </div>
                     </button>
                   </li>
@@ -264,6 +279,11 @@ const Account = () => {
               {/* Orders tab */}
               {activeTab === 'orders' && (
                 <AccountOrders />
+              )}
+              
+              {/* Returns tab */}
+              {activeTab === 'returns' && (
+                <AccountReturns />
               )}
               
               {/* Wishlist tab */}
