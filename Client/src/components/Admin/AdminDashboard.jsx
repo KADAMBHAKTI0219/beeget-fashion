@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from '../../utils/api';
 import ProductManagement from './ProductManagement';
@@ -14,7 +14,7 @@ import Button from '../Common/Button';
 import { toast } from 'react-hot-toast';
 import Modal from '../Common/Modal';
 import AdminOffcanvas from './AdminOffcanvas';
-import { Bars3Icon, HomeIcon } from '@heroicons/react/24/outline';
+import { Bars3Icon, HomeIcon, UserCircleIcon, ArrowRightOnRectangleIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 
@@ -24,8 +24,24 @@ const AdminDashboard = () => {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [unreadContactCount, setUnreadContactCount] = useState(0);
   const [isOffcanvasOpen, setIsOffcanvasOpen] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const profileDropdownRef = useRef(null);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+        setShowProfileDropdown(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   
   // Fetch unread contact messages count
   useQuery({
@@ -222,9 +238,9 @@ const AdminDashboard = () => {
   
   // Format currency
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'INR',
     }).format(amount)
   }
 
@@ -798,37 +814,89 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header with welcome message and user info */}
-        <div className="bg-white border-b border-gray-200 p-4 flex justify-between items-center">
+        <div className="bg-white border-b border-gray-200 p-3 sm:p-4 flex justify-between items-center">
           <div className="flex items-center">
             {/* Mobile menu button - only visible on mobile */}
             <button 
-              className="md:hidden mr-3 text-gray-600 hover:text-gray-800"
+              className="md:hidden mr-2 sm:mr-3 text-gray-600 hover:text-gray-800 p-1 rounded-md hover:bg-gray-100 active:bg-gray-200 transition-colors"
               onClick={() => setIsOffcanvasOpen(true)}
+              aria-label="Open menu"
             >
               <Bars3Icon className="h-6 w-6" />
             </button>
             <div>
-              <h1 className="text-xl font-medium text-gray-800">Welcome Back, {user?.name ? user.name.split(' ')[0] : 'Admin'}.</h1>
-              <p className="text-sm text-gray-500">Welcome to the Dashboard</p>
+              <h1 className="text-lg sm:text-xl font-medium text-gray-800 truncate">Welcome Back, {user?.name ? user.name.split(' ')[0] : 'Admin'}.</h1>
+              <p className="text-xs sm:text-sm text-gray-500">Welcome to the Dashboard</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <button className="text-gray-600 hover:text-gray-800">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <button className="text-gray-600 hover:text-gray-800 p-1 rounded-md hover:bg-gray-100 active:bg-gray-200 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
             </button>
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium text-sm">
-                {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'A'}
-              </div>
-              <span className="text-sm font-medium">{user?.name || 'Admin'}</span>
+            
+            {/* Profile dropdown */}
+            <div className="relative" ref={profileDropdownRef}>
+              <button 
+                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                className="flex items-center gap-1 sm:gap-2 py-1 px-2 rounded-md hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                aria-expanded={showProfileDropdown}
+                aria-haspopup="true"
+              >
+                <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-md ${user?.role === 'admin' ? 'bg-gradient-to-br from-purple-500 to-purple-600' : user?.role === 'manager' ? 'bg-gradient-to-br from-blue-500 to-blue-600' : 'bg-gradient-to-br from-teal-500 to-teal-600'}`}>
+                  {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'A'}
+                </div>
+                <span className="text-xs sm:text-sm font-medium hidden xs:block truncate max-w-[80px] sm:max-w-[120px]">{user?.name || 'Admin'}</span>
+                <ChevronDownIcon className={`h-4 w-4 text-gray-500 hidden xs:block transition-transform duration-200 ${showProfileDropdown ? 'transform rotate-180' : ''}`} />
+              </button>
+              
+              {/* Dropdown menu */}
+              {showProfileDropdown && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200 animate-slideDown origin-top-right">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900 truncate">{user?.name || 'Admin'}</p>
+                    <p className="text-xs text-gray-500 truncate">{user?.email || 'admin@example.com'}</p>
+                    <div className="mt-1.5 flex items-center">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 capitalize">
+                        {user?.role || 'admin'}
+                      </span>
+                      {user?.isEmailVerified && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                          Verified
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <button 
+                    onClick={() => navigate('/account')} 
+                    className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    <UserCircleIcon className="h-4 w-4 mr-3 text-gray-500" />
+                    Profile
+                  </button>
+                  
+
+                  <button 
+                    onClick={() => {
+                      logout();
+                      navigate('/');
+                      toast.success('Successfully logged out');
+                    }} 
+                    className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <ArrowRightOnRectangleIcon className="h-4 w-4 mr-3 text-red-500" />
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       
         {/* Search bar */}
-        <div className="p-4">
+        <div className="p-3 sm:p-4">
           <div className="relative max-w-md">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg className="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -838,13 +906,13 @@ const AdminDashboard = () => {
             <input
               type="text"
               placeholder="Search"
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
             />
           </div>
         </div>
         
         {/* Main content area */}
-        <div className="flex-1 overflow-auto p-4 pb-20 md:pb-4">
+        <div className="flex-1 overflow-auto p-3 sm:p-4 pb-24 md:pb-4">
           {renderTabContent()}
         </div> {/* End of main content area */}
       </div> {/* End of flex-1 flex flex-col overflow-hidden */}
@@ -859,59 +927,59 @@ const AdminDashboard = () => {
       />
       
       {/* Mobile Bottom Navbar - only visible on mobile */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
-        <div className="grid grid-cols-5 h-16">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 shadow-lg">
+        <div className="grid grid-cols-5 h-16 px-1 pt-1 pb-2">
           {/* Dashboard */}
           <button
             onClick={() => setActiveTab('overview')}
-            className={`flex flex-col items-center justify-center ${activeTab === 'overview' ? 'text-blue-600' : 'text-gray-600'}`}
+            className={`flex flex-col items-center justify-center ${activeTab === 'overview' ? 'text-blue-600' : 'text-gray-600'} active:bg-gray-100 rounded-md py-1`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
             </svg>
-            <span className="text-xs mt-1">Overview</span>
+            <span className="text-xs mt-0.5 font-medium">Overview</span>
           </button>
           
           {/* Products */}
           <button
             onClick={() => setActiveTab('products')}
-            className={`flex flex-col items-center justify-center ${activeTab === 'products' ? 'text-blue-600' : 'text-gray-600'}`}
+            className={`flex flex-col items-center justify-center ${activeTab === 'products' ? 'text-blue-600' : 'text-gray-600'} active:bg-gray-100 rounded-md py-1`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
             </svg>
-            <span className="text-xs mt-1">Products</span>
+            <span className="text-xs mt-0.5 font-medium">Products</span>
           </button>
           
           {/* Orders */}
           <button
             onClick={() => setActiveTab('orders')}
-            className={`flex flex-col items-center justify-center ${activeTab === 'orders' ? 'text-blue-600' : 'text-gray-600'}`}
+            className={`flex flex-col items-center justify-center ${activeTab === 'orders' ? 'text-blue-600' : 'text-gray-600'} active:bg-gray-100 rounded-md py-1`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
-            <span className="text-xs mt-1">Orders</span>
+            <span className="text-xs mt-0.5 font-medium">Orders</span>
           </button>
           
           {/* Customers */}
           <button
             onClick={() => setActiveTab('customers')}
-            className={`flex flex-col items-center justify-center ${activeTab === 'customers' ? 'text-blue-600' : 'text-gray-600'}`}
+            className={`flex flex-col items-center justify-center ${activeTab === 'customers' ? 'text-blue-600' : 'text-gray-600'} active:bg-gray-100 rounded-md py-1`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
-            <span className="text-xs mt-1">Customers</span>
+            <span className="text-xs mt-0.5 font-medium">Customers</span>
           </button>
           
           {/* Home */}
           <button
             onClick={() => navigate('/')}
-            className="flex flex-col items-center justify-center text-gray-600"
+            className="flex flex-col items-center justify-center text-gray-600 active:bg-gray-100 rounded-md py-1"
           >
             <HomeIcon className="h-5 w-5" />
-            <span className="text-xs mt-1">Home</span>
+            <span className="text-xs mt-0.5 font-medium">Home</span>
           </button>
         </div>
       </div>

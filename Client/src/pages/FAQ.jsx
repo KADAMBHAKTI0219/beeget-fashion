@@ -34,7 +34,7 @@ const FAQ = () => {
         {
           id: 'shipping-cost',
           question: 'How much does shipping cost?',
-          answer: 'Standard shipping is $5.99, but free on orders over $75. Express shipping is $12.99, and Next Day Delivery is $24.99. International shipping rates vary by country. You can view all shipping options and costs during checkout.'
+          answer: 'Standard shipping is ₹399, but free on orders over ₹5000. Express shipping is ₹899, and Next Day Delivery is ₹1499. International shipping rates vary by country. You can view all shipping options and costs during checkout.'
         },
         {
           id: 'international-shipping',

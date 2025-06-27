@@ -52,17 +52,17 @@ const Shipping = () => {
                     <tr>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Standard Shipping</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">5-7 business days</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">$5.99 (Free on orders over $75)</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">₹399 (Free on orders over ₹5000)</td>
                     </tr>
                     <tr>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Express Shipping</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">2-3 business days</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">$12.99</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">₹899</td>
                     </tr>
                     <tr>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Next Day Delivery</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">1 business day</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">$24.99</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">₹1499</td>
                     </tr>
                   </tbody>
                 </table>
@@ -78,10 +78,10 @@ const Shipping = () => {
                 We currently ship to the following countries:
               </p>
               <ul className="list-disc list-inside text-gray-600 space-y-1">
-                <li>Canada (5-10 business days, $15.99)</li>
-                <li>United Kingdom (7-14 business days, $19.99)</li>
-                <li>Australia (10-15 business days, $24.99)</li>
-                <li>European Union (7-14 business days, $19.99)</li>
+                <li>Canada (5-10 business days, ₹1199)</li>
+              <li>United Kingdom (7-14 business days, ₹1499)</li>
+              <li>Australia (10-15 business days, ₹1899)</li>
+              <li>European Union (7-14 business days, ₹1499)</li>
               </ul>
               <p className="text-gray-600 mt-3">
                 Please note that international orders may be subject to import duties and taxes, which are the responsibility of the recipient.

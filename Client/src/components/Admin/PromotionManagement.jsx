@@ -289,7 +289,7 @@ const PromotionManagement = () => {
                     {promotion.discountType === 'percentage' ? (
                       <span>{promotion.discountValue}% off</span>
                     ) : (
-                      <span>${promotion.discountValue} off</span>
+                      <span>₹{promotion.discountValue} off</span>
                     )}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm">

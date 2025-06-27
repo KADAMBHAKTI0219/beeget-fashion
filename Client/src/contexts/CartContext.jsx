@@ -500,12 +500,12 @@ export const CartProvider = ({ children }) => {
         // Check minimum purchase requirement
         const subtotal = getCartSubtotal()
         if (minimumPurchase && subtotal < minimumPurchase) {
-          setCouponError(`Minimum purchase of $${minimumPurchase.toFixed(2)} required for this coupon`)
+          setCouponError(`Minimum purchase of ₹${minimumPurchase.toFixed(2)} required for this coupon`)
           setCouponCode('')
           setCouponDiscount(0)
           return { 
             success: false, 
-            error: `Minimum purchase of $${minimumPurchase.toFixed(2)} required for this coupon` 
+            error: `Minimum purchase of ₹${minimumPurchase.toFixed(2)} required for this coupon` 
           }
         }
         
@@ -525,7 +525,7 @@ export const CartProvider = ({ children }) => {
         setCouponCode(code)
         setCouponDiscount(discount)
         
-        toast.success(`Coupon applied! You saved $${discount.toFixed(2)}`, {
+        toast.success(`Coupon applied! You saved ₹${discount.toFixed(2)}`, {
           position: "top-right",
           autoClose: 3000,
           hideProgressBar: false,

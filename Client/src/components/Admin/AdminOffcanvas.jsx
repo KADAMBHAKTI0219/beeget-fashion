@@ -49,7 +49,7 @@ const AdminOffcanvas = ({ isOpen, onClose, tabs, activeTab, setActiveTab }) => {
           
           {/* Offcanvas panel */}
           <motion.div
-            className="fixed top-0 left-0 h-full w-full sm:w-64 bg-white shadow-sm z-50 flex flex-col"
+            className="fixed top-0 left-0 h-full w-80 max-w-[85%] bg-white shadow-sm z-50 flex flex-col"
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}

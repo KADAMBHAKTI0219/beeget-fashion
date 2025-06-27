@@ -5,6 +5,7 @@ import { CartProvider } from './contexts/CartContext'
 import { WishlistProvider } from './contexts/WishlistContext'
 import Layout from './components/Layout/Layout'
 import ProtectedRoute from './components/Common/ProtectedRoute'
+import ScrollToTop from './components/Common/ScrollToTop'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
@@ -43,6 +44,7 @@ function App() {
       <CartProvider>
         <WishlistProvider>
           <ToastContainer />
+          <ScrollToTop />
           <Suspense fallback={<LoadingFallback />}>
           <Routes>
             <Route path="/" element={<Layout />}>

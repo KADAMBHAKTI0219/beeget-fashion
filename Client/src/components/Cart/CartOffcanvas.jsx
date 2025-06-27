@@ -130,7 +130,7 @@ const CartOffcanvas = ({ isOpen, onClose }) => {
                       
                       {/* Price */}
                       <div className="text-right">
-                        <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                        <p className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</p>
                       </div>
                     </li>
                   ))}
@@ -143,7 +143,7 @@ const CartOffcanvas = ({ isOpen, onClose }) => {
               <div className="border-t border-gray-200 p-4 bg-gray-50">
                 <div className="flex justify-between mb-4">
                   <span>Subtotal:</span>
-                  <span className="font-medium">${cartTotal.toFixed(2)}</span>
+                  <span className="font-medium">₹{cartTotal.toFixed(2)}</span>
                 </div>
                 <p className="text-xs text-gray-500 mb-4">Shipping and taxes calculated at checkout</p>
                 <div className="grid grid-cols-2 gap-2">

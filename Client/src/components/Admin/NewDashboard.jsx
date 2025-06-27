@@ -3,7 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import axios from '../../utils/api';
 import Button from '../Common/Button';
 import { format, parseISO } from 'date-fns';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend, BarChart, Bar
+} from 'recharts';
 
 const NewDashboard = () => {
   // State for date range
@@ -12,98 +15,147 @@ const NewDashboard = () => {
     endDate: new Date(),
   });
 
-  // Fetch dashboard stats with React Query
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['admin-stats'],
+  // Fetch orders data with React Query
+  const { data: ordersData, isLoading: ordersLoading } = useQuery({
+    queryKey: ['admin-orders'],
     queryFn: async () => {
       try {
-        // Simulate API call for dashboard data
-        // In a real app, you would fetch this from your backend
-        return {
-          totalRevenue: 25334,
-          avgOrderValue: 5634,
-          totalShipment: 5334,
-          recentOrders: [
-            {
-              id: '#3068',
-              customer: {
-                name: 'Krystal Beer',
-                email: 'krystalb306@gmail.com'
-              },
-              date: '2022-01-06',
-              status: 'Paid',
-              purchase: 'Monthly subscription'
-            },
-            {
-              id: '#3065',
-              customer: {
-                name: 'Mr. Tanya Runolfsdottir',
-                email: 'tanner.sipes@gmail.com'
-              },
-              date: '2022-01-06',
-              status: 'Paid',
-              purchase: 'Monthly subscription'
-            },
-            {
-              id: '#3064',
-              customer: {
-                name: 'Angie Hudson',
-                email: 'hudson.angie@yahoo.com'
-              },
-              date: '2022-01-06',
-              status: 'Paid',
-              purchase: 'Monthly subscription'
-            },
-            {
-              id: '#3063',
-              customer: {
-                name: 'Dr. Jesse Bahringer',
-                email: 'Jayme229@yahoo.com'
-              },
-              date: '2022-01-05',
-              status: 'Paid',
-              purchase: 'Monthly subscription'
-            },
-            {
-              id: '#3062',
-              customer: {
-                name: 'Gloria Bechtelar',
-                email: 'gloria.b@example.com'
-              },
-              date: '2022-01-05',
-              status: 'Refunded',
-              purchase: 'Monthly subscription'
-            }
-          ],
-          transactionData: [
-            // Sample data points for the transaction graph
-            // This would typically come from your backend
-            { date: '2023-04-06', amount: 10000 },
-            { date: '2023-04-11', amount: 25000 },
-            { date: '2023-04-16', amount: 15000 },
-            { date: '2023-04-22', amount: 30000 },
-            { date: '2023-04-26', amount: 20000 },
-            { date: '2023-05-04', amount: 35000 },
-            { date: '2023-05-09', amount: 25000 },
-            { date: '2023-05-15', amount: 40000 },
-            { date: '2023-05-21', amount: 30000 },
-            { date: '2023-05-27', amount: 45000 },
-            { date: '2023-06-02', amount: 35000 },
-            { date: '2023-06-07', amount: 50000 },
-            { date: '2023-06-12', amount: 40000 },
-            { date: '2023-06-18', amount: 55000 },
-            { date: '2023-06-24', amount: 45000 },
-            { date: '2023-06-30', amount: 60000 },
-          ],
-          // Add more stats as needed
-        };
+        const response = await axios.get('/api/admin/orders');
+        return response.data.data;
       } catch (error) {
-        console.error('Error fetching admin stats:', error);
-        throw new Error('Failed to fetch admin stats');
+        console.error('Error fetching orders:', error);
+        throw new Error('Failed to fetch orders');
       }
     },
     staleTime: 5 * 60 * 1000 // 5 minutes
   });
+
+  // Fetch products data with React Query
+  const { data: productsData, isLoading: productsLoading } = useQuery({
+    queryKey: ['admin-products'],
+    queryFn: async () => {
+      try {
+        const response = await axios.get('/api/products');
+        return response.data.data;
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        throw new Error('Failed to fetch products');
+      }
+    },
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  });
+
+  // Fetch users data with React Query
+  const { data: usersData, isLoading: usersLoading } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: async () => {
+      try {
+        const response = await axios.get('/api/admin/users');
+        return response.data.data;
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        throw new Error('Failed to fetch users');
+      }
+    },
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  });
+
+  // Calculate dashboard stats from fetched data
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+     if (ordersData && productsData && usersData) {
+       // Calculate total revenue from all orders
+       const totalRevenue = ordersData.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+       
+       // Calculate average order value
+       const avgOrderValue = ordersData.length > 0 ? Math.round(totalRevenue / ordersData.length) : 0;
+       
+       // Total shipments (orders that have been shipped)
+       const totalShipment = ordersData.filter(order => 
+         order.orderStatus === 'shipped' || order.orderStatus === 'delivered'
+       ).length;
+
+       // Get recent orders (last 5)
+       const recentOrders = ordersData
+         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+         .slice(0, 5)
+         .map(order => ({
+           id: `#${order._id.substring(order._id.length - 4)}`,
+           customer: {
+             name: order.userId?.name || 'Unknown Customer',
+             email: order.userId?.email || 'unknown@email.com'
+           },
+           date: order.createdAt,
+           status: order.paymentStatus === 'paid' ? 'Paid' : 
+                  order.paymentStatus === 'refunded' ? 'Refunded' : 'Pending',
+           purchase: order.items.length > 0 ? 
+                    `${order.items.length} item${order.items.length > 1 ? 's' : ''}` : 
+                    'No items'
+         }));
+
+       // Generate transaction data for the graph
+       // Group orders by date and sum amounts
+       const ordersByDate = ordersData.reduce((acc, order) => {
+         const date = new Date(order.createdAt).toISOString().split('T')[0]; // YYYY-MM-DD format
+         if (!acc[date]) {
+           acc[date] = 0;
+         }
+         acc[date] += order.totalAmount || 0;
+         return acc;
+       }, {});
+
+       // Convert to array format for the chart
+       const transactionData = Object.entries(ordersByDate)
+         .map(([date, amount]) => ({ date, amount }))
+         .sort((a, b) => new Date(a.date) - new Date(b.date))
+         .slice(-16); // Last 16 data points for the graph
+
+       // Process product categories for pie chart
+       const categoryCount = {};
+       productsData.forEach(product => {
+         if (product.categories && product.categories.length > 0) {
+           product.categories.forEach(category => {
+             const categoryName = category.name || 'Uncategorized';
+             categoryCount[categoryName] = (categoryCount[categoryName] || 0) + 1;
+           });
+         } else {
+           categoryCount['Uncategorized'] = (categoryCount['Uncategorized'] || 0) + 1;
+         }
+       });
+
+       // Convert to array format for the pie chart
+       const categoryData = Object.entries(categoryCount)
+         .map(([name, value]) => ({ name, value }))
+         .sort((a, b) => b.value - a.value); // Sort by count descending
+
+       // Process order status for bar chart
+       const orderStatusCount = {};
+       ordersData.forEach(order => {
+         const status = order.orderStatus || 'processing';
+         orderStatusCount[status] = (orderStatusCount[status] || 0) + 1;
+       });
+
+       // Convert to array format for the bar chart
+       const orderStatusData = Object.entries(orderStatusCount)
+         .map(([name, value]) => ({ name, value }));
+
+       setStats({
+         totalRevenue,
+         avgOrderValue,
+         totalShipment,
+         recentOrders,
+         transactionData,
+         totalProducts: productsData.length,
+         totalUsers: usersData.length,
+         categoryData,
+         orderStatusData
+       });
+     }
+   }, [ordersData, productsData, usersData]);
+
+  // Loading state
+  const isLoading = ordersLoading || productsLoading || usersLoading;
 
   // Format date
   const formatDate = (dateString) => {
@@ -181,7 +233,7 @@ const NewDashboard = () => {
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-gray-500 text-sm font-medium mb-1">Avg. Order Value</h3>
             <div className="flex items-center justify-between">
-              <p className="text-2xl font-medium text-gray-800">{stats?.avgOrderValue || 0}</p>
+              <p className="text-2xl font-medium text-gray-800">{formatCurrency(stats?.avgOrderValue || 0)}</p>
               <span className="text-xs font-medium px-2 py-1 rounded-full bg-red-100 text-red-800">-15%</span>
             </div>
             <p className="text-xs text-gray-500 mt-2">From Jan 01, 2024 - March 30, 2024</p>
@@ -198,10 +250,145 @@ const NewDashboard = () => {
           </div>
         </div>
 
-        {/* Transaction Activity Graph */}
+        {/* Additional Stats cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* Total Products */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h3 className="text-gray-500 text-sm font-medium mb-1">Total Products</h3>
+            <div className="flex items-center justify-between">
+              <p className="text-2xl font-medium text-gray-800">{stats?.totalProducts || 0}</p>
+              <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-800">+8%</span>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">Total products in inventory</p>
+          </div>
+
+          {/* Total Users */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h3 className="text-gray-500 text-sm font-medium mb-1">Total Users</h3>
+            <div className="flex items-center justify-between">
+              <p className="text-2xl font-medium text-gray-800">{stats?.totalUsers || 0}</p>
+              <span className="text-xs font-medium px-2 py-1 rounded-full bg-purple-100 text-purple-800">+20%</span>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">Registered users</p>
+          </div>
+        </div>
+
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* Transaction Activity Graph */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-gray-700 font-medium">Transaction Activity</h3>
+              <button className="text-gray-400 hover:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Transaction Activity Graph using Recharts */}
+            <div className="h-64">
+              {stats?.transactionData && (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={stats.transactionData}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis 
+                      dataKey="date" 
+                      tickFormatter={(date) => format(new Date(date), 'MMM d')}
+                      tick={{ fontSize: 12 }}
+                      tickMargin={10}
+                    />
+                    <YAxis 
+                      tickFormatter={(value) => `${value / 1000}k`}
+                      tick={{ fontSize: 12 }}
+                      tickMargin={10}
+                    />
+                    <Tooltip 
+                      formatter={(value) => [`₹${value.toLocaleString()}`, 'Amount']}
+                      labelFormatter={(date) => format(new Date(date), 'MMMM d, yyyy')}
+                      contentStyle={{ 
+                        backgroundColor: 'white', 
+                        border: 'none', 
+                        borderRadius: '0.375rem',
+                        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                        fontSize: '0.75rem'
+                      }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="amount" 
+                      stroke="#10B981" 
+                      strokeWidth={2} 
+                      dot={{ r: 3, strokeWidth: 2 }}
+                      activeDot={{ r: 5, strokeWidth: 0, fill: '#10B981' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          {/* Product Categories Pie Chart */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-gray-700 font-medium">Product Categories</h3>
+              <button className="text-gray-400 hover:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Product Categories Pie Chart using Recharts */}
+            <div className="h-64">
+              {stats?.categoryData && stats.categoryData.length > 0 && (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={stats.categoryData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                      nameKey="name"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {stats.categoryData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={[
+                            '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', 
+                            '#F59E0B', '#EF4444', '#6366F1', '#14B8A6'
+                          ][index % 8]} 
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value, name, props) => [`${value} products`, props.payload.name]}
+                      contentStyle={{ 
+                        backgroundColor: 'white', 
+                        border: 'none', 
+                        borderRadius: '0.375rem',
+                        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                        fontSize: '0.75rem'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Order Status Bar Chart */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-gray-700 font-medium">Transaction Activity</h3>
+            <h3 className="text-gray-700 font-medium">Order Status Distribution</h3>
             <button className="text-gray-400 hover:text-gray-600">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
@@ -209,29 +396,26 @@ const NewDashboard = () => {
             </button>
           </div>
           
-          {/* Transaction Activity Graph using Recharts */}
+          {/* Order Status Bar Chart using Recharts */}
           <div className="h-64">
-            {stats?.transactionData && (
+            {stats?.orderStatusData && stats.orderStatusData.length > 0 && (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={stats.transactionData}
+                <BarChart
+                  data={stats.orderStatusData}
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis 
-                    dataKey="date" 
-                    tickFormatter={(date) => format(new Date(date), 'MMM d')}
+                    dataKey="name" 
                     tick={{ fontSize: 12 }}
                     tickMargin={10}
                   />
                   <YAxis 
-                    tickFormatter={(value) => `${value / 1000}k`}
                     tick={{ fontSize: 12 }}
                     tickMargin={10}
                   />
                   <Tooltip 
-                    formatter={(value) => [`$${value.toLocaleString()}`, 'Amount']}
-                    labelFormatter={(date) => format(new Date(date), 'MMMM d, yyyy')}
+                    formatter={(value) => [`${value} orders`, 'Count']}
                     contentStyle={{ 
                       backgroundColor: 'white', 
                       border: 'none', 
@@ -240,15 +424,12 @@ const NewDashboard = () => {
                       fontSize: '0.75rem'
                     }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="amount" 
-                    stroke="#10B981" 
-                    strokeWidth={2} 
-                    dot={{ r: 3, strokeWidth: 2 }}
-                    activeDot={{ r: 5, strokeWidth: 0, fill: '#10B981' }}
+                  <Bar 
+                    dataKey="value" 
+                    fill="#3B82F6" 
+                    radius={[4, 4, 0, 0]}
                   />
-                </LineChart>
+                </BarChart>
               </ResponsiveContainer>
             )}
           </div>

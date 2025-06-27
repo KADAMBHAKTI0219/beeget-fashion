@@ -333,10 +333,10 @@ const ProductDetail = () => {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              ${product.price.toFixed(2)}
+              ₹{product.price.toFixed(2)}
               {product.salePrice && product.salePrice < product.price && (
                 <span className="ml-2 text-sm text-red-500 line-through">
-                  ${product.price.toFixed(2)}
+                  ₹{product.price.toFixed(2)}
                 </span>
               )}
             </motion.div>
@@ -495,7 +495,7 @@ const ProductDetail = () => {
                     <Link to={`/product/${relatedProduct.slug}`} className="block">
                       <h3 className="text-lg font-medium text-charcoal hover:text-teal transition-colors">{relatedProduct.title}</h3>
                     </Link>
-                    <p className="text-gray-600 mt-1">${relatedProduct.price.toFixed(2)}</p>
+                    <p className="text-gray-600 mt-1">₹{relatedProduct.price.toFixed(2)}</p>
                     <div className="mt-4">
                       {isAuthenticated ? (
                         <Button 

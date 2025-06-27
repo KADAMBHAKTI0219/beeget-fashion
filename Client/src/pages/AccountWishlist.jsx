@@ -117,15 +117,15 @@ const AccountWishlist = () => {
                       {item.productId.salePrice ? (
                         <div className="flex items-center space-x-2">
                           <span className="text-lg font-semibold text-teal-600">
-                            ${item.productId.salePrice.toFixed(2)}
+                            ₹{item.productId.salePrice.toFixed(2)}
                           </span>
                           <span className="text-sm text-gray-500 line-through">
-                            ${item.productId.price.toFixed(2)}
+                            ₹{item.productId.price.toFixed(2)}
                           </span>
                         </div>
                       ) : (
                         <span className="text-lg font-semibold text-gray-800">
-                          ${item.productId.price.toFixed(2)}
+                          ₹{item.productId.price.toFixed(2)}
                         </span>
                       )}
                     </div>

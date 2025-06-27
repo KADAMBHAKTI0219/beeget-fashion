@@ -515,7 +515,7 @@ const Home = () => {
                     <Link to={`/product/${product.slug}`} className="block">
                       <h3 className="text-lg font-medium text-charcoal hover:text-teal transition-colors">{product.name}</h3>
                     </Link>
-                    <p className="text-gray-600 mt-1">${product.price.toFixed(2)}</p>
+                    <p className="text-gray-600 mt-1">₹{product.price.toFixed(2)}</p>
                     <div className="mt-4">
                       <Button fullWidth>Add to Cart</Button>
                     </div>

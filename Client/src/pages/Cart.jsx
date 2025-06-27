@@ -145,7 +145,7 @@ const Cart = () => {
                   {/* Price */}
                   <div className="col-span-2 text-center">
                     <span className="sm:hidden inline-block font-medium mr-2">Price:</span>
-                    ${item.price.toFixed(2)}
+                    ₹{item.price.toFixed(2)}
                   </div>
                   
                   {/* Quantity */}
@@ -184,7 +184,7 @@ const Cart = () => {
                   {/* Total */}
                   <div className="col-span-2 text-center font-medium">
                     <span className="sm:hidden inline-block font-medium mr-2">Total:</span>
-                    ${(item.price * item.quantity).toFixed(2)}
+                    ₹{(item.price * item.quantity).toFixed(2)}
                   </div>
                 </div>
               ))}
@@ -269,27 +269,27 @@ const Cart = () => {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">${subtotal.toFixed(2)}</span>
+                  <span className="font-medium">₹{subtotal.toFixed(2)}</span>
                 </div>
                 
                 {couponApplied && (
                   <div className="flex justify-between text-green-600">
                     <span>Discount ({couponDiscount}%)</span>
-                    <span>-${discountAmount.toFixed(2)}</span>
+                    <span>-₹{discountAmount.toFixed(2)}</span>
                   </div>
                 )}
                 
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
                   <span className="font-medium">
-                    {shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}
+                    {shippingCost === 0 ? 'Free' : `₹${shippingCost.toFixed(2)}`}
                   </span>
                 </div>
                 
                 <div className="border-t border-gray-200 pt-3 mt-3">
                   <div className="flex justify-between font-semibold text-lg">
                     <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
+                    <span>₹{total.toFixed(2)}</span>
                   </div>
                   <p className="text-gray-500 text-xs mt-1">Including VAT</p>
                 </div>
